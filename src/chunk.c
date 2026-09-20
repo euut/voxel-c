@@ -1,21 +1,6 @@
 #include "chunk.h"
 #include "world.h"
 
-static inline int chunk_block_index(ivec3s pos)
-{
-    return pos.x + pos.z * CHUNK_WIDTH + pos.y * CHUNK_WIDTH * CHUNK_WIDTH;
-}
-
-// Convert local block coords to world position
-static inline ivec3s chunk_local_to_world(ivec2s chunk_offset, ivec3s local_pos)
-{
-    return (ivec3s) {
-        .x = chunk_offset.x * CHUNK_WIDTH + local_pos.x,
-        .y = local_pos.y,
-        .z = chunk_offset.y * CHUNK_WIDTH + local_pos.z
-    };
-}
-
 static inline bool chunk_in_bound(ivec3s pos)
 {
     return pos.x >= 0 && pos.y >= 0 && pos.z >= 0 && pos.x < CHUNK_WIDTH && pos.y < CHUNK_HEIGHT && pos.z < CHUNK_WIDTH;
@@ -39,12 +24,9 @@ void chunk_init(struct Chunk* chunk, struct World* world, ivec2s offset)
 
 uint8_t chunk_get_block(struct Chunk* chunk, ivec3s pos)
 {
-    if (chunk_in_bound(pos))
-    {
-        return chunk->blocks[chunk_block_index(pos)];
-    }
+    if (!chunk_in_bound(pos)) return BLOCK_AIR;
 
-    return BLOCK_AIR;
+    return chunk->blocks[chunk_block_index(pos)];
 }
 
 void chunk_set_block(struct Chunk* chunk, ivec3s pos, uint8_t block_id)
@@ -52,12 +34,14 @@ void chunk_set_block(struct Chunk* chunk, ivec3s pos, uint8_t block_id)
     chunk->blocks[chunk_block_index(pos)] = block_id;
     chunk->dirty = true;
 
+    if (!chunk_on_bound(pos)) return;
+
     // mark affected neighbour chunks as dirty if updated block is on chunk edge
     struct Chunk* neighbor;
 
     if (pos.x == 0)
     {
-        neighbor = world_get_chunk(chunk->world, glms_ivec2_add(chunk->offset, (ivec2s) {{-1, 0 }}));
+        neighbor = world_get_chunk(chunk->world, glms_ivec2_add(chunk->offset, (ivec2s) {{ -1, 0 }}));
         
         if (neighbor != NULL) neighbor->dirty = true;
     }
@@ -71,7 +55,7 @@ void chunk_set_block(struct Chunk* chunk, ivec3s pos, uint8_t block_id)
 
     if (pos.z == 0)
     {
-        neighbor = world_get_chunk(chunk->world, glms_ivec2_add(chunk->offset, (ivec2s) {{ 0,-1 }}));
+        neighbor = world_get_chunk(chunk->world, glms_ivec2_add(chunk->offset, (ivec2s) {{ 0, -1 }}));
 
         if (neighbor != NULL) neighbor->dirty = true;
     }
@@ -84,7 +68,7 @@ void chunk_set_block(struct Chunk* chunk, ivec3s pos, uint8_t block_id)
     }
 }
 
-void chunk_build_mesh(struct Chunk* chunk, struct Renderer* renderer)
+void chunk_build_mesh(struct Chunk* chunk, struct TextureAtlas* atlas)
 {
     mesh_reset(&chunk->mesh);
 
@@ -126,31 +110,30 @@ void chunk_build_mesh(struct Chunk* chunk, struct Renderer* renderer)
                         neighbor_block = world_get_block(chunk->world, neighbor_world_pos);
                     }
                     
-                    if (!block_is_solid(neighbor_block))
+                    if (!neighbor_block || !block_is_solid(neighbor_block))
                     {
                         uint16_t tile_index = block_get_tile_index(block, face);
-                        vec2s tile_unit = renderer->texture_atlas.tile_unit;
-                        vec2s uv_offset = texture_atlas_get_uv_offset(&renderer->texture_atlas, tile_index);
+                        vec2s uv_offset = texture_atlas_get_uv_offset(atlas, tile_index);
 
-                        mesh_add_face(&chunk->mesh, uv_offset, tile_unit, ivec3s_to_vec3s(world_pos), face);
+                        mesh_add_face(&chunk->mesh, uv_offset, atlas->tile_unit, ivec3s_to_vec3s(world_pos), face);
                     }
                 }
             }
         }
     }
 
-    renderer_submit_mesh(renderer, &chunk->mesh); // upload mesh to gpu
+    mesh_upload(&chunk->mesh);
 }
 
 void chunk_render(struct Chunk* chunk, struct Renderer* renderer)
 {
     if (chunk->dirty)
     {
-        chunk_build_mesh(chunk, renderer);
+        chunk_build_mesh(chunk, &renderer->texture_atlas);
         chunk->dirty = false;
     }
     
-    renderer_draw_mesh(renderer, &chunk->mesh);
+    mesh_render(&chunk->mesh, renderer);
 }
 
 void chunk_destroy(struct Chunk* chunk)

@@ -36,6 +36,13 @@ static struct Block blocks[BLOCK_TOTAL] =
         .tile_index = { 18, 18, 18, 18, 18, 18 }
     },
 
+    [BLOCK_WATER] = (struct Block)
+    {
+        .solid = true, // temporarily set to solid
+        .transparent = true,
+        .tile_index = { 205, 205, 205, 205, 205, 205 }
+    },
+
     [BLOCK_WOOD] = (struct Block)
     {
         .solid = true,

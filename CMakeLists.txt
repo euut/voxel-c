@@ -1,10 +1,8 @@
 cmake_minimum_required(VERSION 3.28)
 
-project(minecraft-c)
+project(voxel-c)
 
 set(CMAKE_C_STANDARD 11)
-
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_subdirectory(lib/glfw)
 add_subdirectory(lib/cglm)
@@ -25,12 +23,15 @@ add_executable(${PROJECT_NAME}
     src/chunk.c
     src/chunkmap.c
     src/world.c
+    src/worldgen.c
+    src/player.c
 )
 
 find_package(OpenGL REQUIRED)
 
 target_include_directories(${PROJECT_NAME} PRIVATE src)
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/lib/stb)
+target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/lib/fastnoiselite)
 target_include_directories(glad PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/lib/glad/include)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE glfw glad cglm OpenGL::GL)

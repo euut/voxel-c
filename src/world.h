@@ -2,50 +2,53 @@
 #define WORLD_H
 
 #include "input.h"
-#include "camera.h"
+#include "player.h"
 #include "renderer.h"
 #include "chunkmap.h"
+#include "worldgen.h"
 #include "util/math.h"
-
-#define RENDER_DISTANCE 8
 
 struct World
 {
-    struct Camera camera;
+    int render_distance;
+
+    struct Player player;
 
     struct ChunkMap* chunkmap;
 
     struct Chunk** chunks;  // dynamic list of loaded chunks
     size_t chunk_count;
     size_t chunk_capacity;
+};
 
-    enum BlockId selected_block;
+struct Ray
+{
+    bool hit;
+    ivec3s target_block;
+    ivec3s normal;
 };
 
 // Convert world position to chunk offset
 static inline ivec2s world_to_chunk_offset(ivec3s world_pos)
 {
-    ivec2s offset;
-
-    offset.x = world_pos.x >> 4;
-    offset.y = world_pos.z >> 4;
-
-    return offset;
+    return (ivec2s) {
+        world_pos.x >> 4,
+        world_pos.z >> 4
+    };
 }
 
 // Convert world position to local block position within chunk
 static inline ivec3s world_to_local_pos(ivec3s world_pos)
 {
-    ivec3s local;
-
-    local.x = world_pos.x & (CHUNK_WIDTH - 1);
-    local.y = world_pos.y;
-    local.z = world_pos.z & (CHUNK_WIDTH - 1);
-
-    return local;
+    return (ivec3s) {
+        world_pos.x & (CHUNK_WIDTH - 1),
+        world_pos.y,
+        world_pos.z & (CHUNK_WIDTH - 1)
+    };
 }
 
-void world_init(struct World* world);
+void world_init(struct World* world, int seed);
+bool world_ray_cast(struct World* world, vec3s origin, vec3s direction, float max_distance, ivec3s* hit, ivec3s* normal);
 struct Chunk* world_get_chunk(struct World* world, ivec2s offset);
 uint8_t world_get_block(struct World* world, ivec3s pos);
 void world_set_block(struct World* world, ivec3s pos, uint8_t block_id);

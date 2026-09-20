@@ -38,7 +38,7 @@ struct Chunk* chunkmap_get(struct ChunkMap* map, int32_t x, int32_t z)
     {
         struct ChunkEntry* entry = &map->data[index];
 
-        if (entry->state == ENTRY_EMPTY)
+        if (!entry->occupied)
             return NULL;
 
         if (entry->distance < distance)
@@ -63,17 +63,18 @@ void chunkmap_put(struct ChunkMap* map, int32_t x, int32_t z, struct Chunk* chun
     uint64_t hash = chunk_hash(key);
     size_t index = hash & (map->capacity - 1);
 
-    struct ChunkEntry entry;
-    entry.key = key;
-    entry.chunk = chunk;
-    entry.distance = 0;
-    entry.state = ENTRY_OCCUPIED;
+    struct ChunkEntry entry = {
+        .key = key,
+        .chunk = chunk,
+        .distance = 0,
+        .occupied = true
+    };
 
     while (true)
     {
         struct ChunkEntry* current = &map->data[index];
 
-        if (current->state == ENTRY_EMPTY)
+        if (!current->occupied)
         {
             *current = entry;
             map->count++;
@@ -108,7 +109,7 @@ void chunkmap_remove(struct ChunkMap* map, int32_t x, int32_t z)
     {
         struct ChunkEntry* entry = &map->data[index];
 
-        if (entry->state == ENTRY_EMPTY)
+        if (!entry->occupied)
             return;
 
         if (entry->key == key)
@@ -118,9 +119,10 @@ void chunkmap_remove(struct ChunkMap* map, int32_t x, int32_t z)
     }
 
     // Shift following entries backward
+
     size_t next = (index + 1) & (map->capacity - 1);
 
-    while (map->data[next].state == ENTRY_OCCUPIED && map->data[next].distance > 0)
+    while (map->data[next].occupied && map->data[next].distance > 0)
     {
         map->data[index] = map->data[next];
         map->data[index].distance--;
@@ -129,7 +131,7 @@ void chunkmap_remove(struct ChunkMap* map, int32_t x, int32_t z)
         next = (next + 1) & (map->capacity - 1);
     }
 
-    map->data[index].state = ENTRY_EMPTY;
+    map->data[index].occupied = false;
     map->count--;
 }
 
@@ -140,17 +142,17 @@ void chunkmap_resize(struct ChunkMap* map)
 
     for (size_t i = 0; i < map->capacity; i++)
     {
-        if (map->data[i].state != ENTRY_OCCUPIED) continue;
+        if (!map->data[i].occupied) continue;
 
         struct ChunkEntry entry = map->data[i];
-        size_t index = chunk_hash(entry.key) % new_capacity;
+        size_t index = chunk_hash(entry.key) & (new_capacity - 1);
         entry.distance = 0;
 
         while (true)
         {
             struct ChunkEntry* current = &new_data[index];
 
-            if (current->state == ENTRY_EMPTY)
+            if (!current->occupied)
             {
                 *current = entry;
                 break;
@@ -163,7 +165,7 @@ void chunkmap_resize(struct ChunkMap* map)
                 entry = temp;
             }
 
-            index = (index + 1) % new_capacity;
+            index = (index + 1) & (new_capacity - 1);
             entry.distance++;
         }
     }

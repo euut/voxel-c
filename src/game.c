@@ -22,10 +22,10 @@ static void render(struct Game* game)
 
 void game_init(struct Game* game)
 {
-    game->window = window_create(1920, 1080, "Minecraft", game);
+    window_init(&game->window, 1920, 1080, "Minecraft", game);
     renderer_init(&game->renderer);
     input_init(&game->input, &game->window);
-    world_init(&game->world);
+    world_init(&game->world, 0);
 }
 
 void game_run(struct Game* game)

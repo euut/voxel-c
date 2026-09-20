@@ -10,11 +10,6 @@ static const vec3s CUBE_VERTICES[6][4] = {
     { { 0, 0, 0 }, { 1, 0, 0 }, { 1, 0, 1 }, { 0, 0, 1 } } // -Y (bottom)
 };
 
-static const uint16_t FACE_INDICES[6] = {
-    0, 1, 2,
-    2, 3, 0
-};
-
 static const float CUBE_UVS[8] = {
     1, 0,
     0, 0,
@@ -51,10 +46,50 @@ void mesh_add_face(struct Mesh* mesh, vec2s uv_offset, vec2s tile_unit, vec3s po
     // Add indices for two triangles
     for (int i = 0; i < 6; i++)
     {
-        mesh->indices[mesh->indices_count++] = mesh->vertex_count + FACE_INDICES[i];
+        mesh->indices[mesh->indices_count++] = mesh->vertex_count + 0;
+        mesh->indices[mesh->indices_count++] = mesh->vertex_count + 1;
+        mesh->indices[mesh->indices_count++] = mesh->vertex_count + 2;
+        mesh->indices[mesh->indices_count++] = mesh->vertex_count + 2;
+        mesh->indices[mesh->indices_count++] = mesh->vertex_count + 3;
+        mesh->indices[mesh->indices_count++] = mesh->vertex_count + 0;
     }
 
     mesh->vertex_count += 4;
+}
+
+void mesh_upload(struct Mesh* mesh)
+{
+    glGenVertexArrays(1, &mesh->vao);
+    glBindVertexArray(mesh->vao);
+
+    glGenBuffers(1, &mesh->vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, mesh->vbo);
+    glBufferData(GL_ARRAY_BUFFER, mesh->vertex_count * sizeof(struct Vertex), mesh->vertices, GL_STATIC_DRAW);
+    
+    glGenBuffers(1, &mesh->ibo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ibo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh->indices_count * sizeof(uint16_t), mesh->indices, GL_STATIC_DRAW);
+
+    // position
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(struct Vertex), (void*)(0 * sizeof(float)));
+    glEnableVertexAttribArray(0);
+
+    // uvs
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(struct Vertex), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+}
+
+void mesh_render(struct Mesh* mesh, struct Renderer* renderer)
+{
+    renderer_use_shader(renderer, SHADER_BASIC);
+    shader_uniform_mat4(renderer->shader, "m", GLMS_MAT4_IDENTITY);
+    shader_uniform_mat4(renderer->shader, "v", renderer->camera->view_matrix);
+    shader_uniform_mat4(renderer->shader, "p", renderer->camera->projection_matrix);
+    shader_uniform_texture(renderer->shader, "tex", renderer->texture_atlas.texture, 0);
+
+    glBindVertexArray(mesh->vao);
+    glDrawElements(GL_TRIANGLES, mesh->indices_count, GL_UNSIGNED_SHORT, 0);
+    glBindVertexArray(0);
 }
 
 void mesh_destroy(struct Mesh* mesh)

@@ -1,27 +1,17 @@
 #include "world.h"
 
-static void worldgen_generate(struct Chunk* chunk)
+void world_init(struct World* world, int seed)
 {
-    for (int x = 0; x < CHUNK_WIDTH; x++)
-    {
-        for (int z = 0; z < CHUNK_WIDTH; z++)
-        {
-            for (int y = 0; y < CHUNK_HEIGHT; y++)
-            {
-                uint8_t block = BLOCK_AIR;
+    memset(world, 0, sizeof(struct World));
+    
+    world->chunkmap = chunkmap_create(128);
+    world->render_distance = 8;
 
-                if (y < 4)
-                    block = BLOCK_GRASS;
-                if (y < 3)
-                    block = BLOCK_DIRT;
-
-                chunk_set_block(chunk, (ivec3s){{x, y, z}}, block);
-            }
-        }
-    }
+    player_init(&world->player, (vec3s) {{ 0, 64, 0 }}, world);
+    worldgen_init(seed);
 }
 
-static bool world_ray_cast(struct World* world, vec3s origin, vec3s direction, float max_distance, ivec3s* hit, ivec3s* normal)
+bool world_ray_cast(struct World* world, vec3s origin, vec3s direction, float max_distance, ivec3s* hit, ivec3s* normal)
 {
     ivec3s pos, step = GLMS_IVEC3_ZERO;
     
@@ -39,13 +29,13 @@ static bool world_ray_cast(struct World* world, vec3s origin, vec3s direction, f
     tdelta.y = (direction.y != 0) ? fabsf(1.0f / direction.y) : FLT_MAX;
     tdelta.z = (direction.z != 0) ? fabsf(1.0f / direction.z) : FLT_MAX;
 
-    tmax.x = ((pos.x + (step.x > 0 ? 1.0f : 0.0f)) - origin.x) / direction.x;
-    tmax.y = ((pos.y + (step.y > 0 ? 1.0f : 0.0f)) - origin.y) / direction.y;
-    tmax.z = ((pos.z + (step.z > 0 ? 1.0f : 0.0f)) - origin.z) / direction.z;
+    tmax.x = (direction.x != 0) ? ((pos.x + (step.x > 0 ? 1.0f : 0.0f)) - origin.x) / direction.x : FLT_MAX;
+    tmax.y = (direction.y != 0) ? ((pos.y + (step.y > 0 ? 1.0f : 0.0f)) - origin.y) / direction.y : FLT_MAX;
+    tmax.z = (direction.z != 0) ? ((pos.z + (step.z > 0 ? 1.0f : 0.0f)) - origin.z) / direction.z : FLT_MAX;
 
     float distance = 0.0f;
 
-    ivec3s n = GLMS_IVEC3_ZERO;; // which face the ray is pointing
+    ivec3s n = GLMS_IVEC3_ZERO; // which face the ray is pointing
     
     while (distance <= max_distance)
     {
@@ -95,18 +85,14 @@ static bool world_ray_cast(struct World* world, vec3s origin, vec3s direction, f
     return false;
 }
 
-void world_init(struct World* world)
-{
-    memset(world, 0, sizeof(struct World));
-    
-    world->chunkmap = chunkmap_create(128);
-    world->selected_block = BLOCK_DIRT;
-    camera_init(&world->camera, (vec3s){{0,7,0}}, radians(75.0f));
-}
-
 struct Chunk* world_get_chunk(struct World* world, ivec2s offset)
 {
     return chunkmap_get(world->chunkmap, offset.x, offset.y);
+}
+
+bool world_chunk_exists(struct World* world, ivec2s offset)
+{
+    return world_get_chunk(world, offset) != NULL;
 }
 
 uint8_t world_get_block(struct World* world, ivec3s pos)
@@ -139,11 +125,13 @@ void world_set_block(struct World* world, ivec3s pos, uint8_t block_id)
 void world_load_chunk(struct World* world, ivec2s offset)
 {
     // Skip chunks that already exist
-    if (world_get_chunk(world, offset) != NULL) return;
+    if (world_chunk_exists(world, offset)) return;
 
     struct Chunk* chunk = malloc(sizeof(struct Chunk));
+
     chunk_init(chunk, world, offset);
-    worldgen_generate(chunk);
+
+    worldgen_generate_terrain(chunk);
 
     chunkmap_put(world->chunkmap, offset.x, offset.y, chunk);
 
@@ -169,73 +157,17 @@ void world_unload_chunk(struct World* world, size_t index)
     free(chunk);
 }
 
-void world_move_camera(struct World* world, struct Input* input)
-{
-    float speed = input_key_down(input, GLFW_KEY_LEFT_CONTROL) ? 0.4f : 0.2f;
-
-    camera_rotate(&world->camera, input);
-
-    // printf("%f, %f\n", input->mouse_delta.x, input->mouse_delta.y);
-
-    vec3s offset = GLMS_VEC3_ZERO;
-    vec3s forward = glms_vec3_normalize((vec3s){{world->camera.front.x, 0.0f, world->camera.front.z}});
-    vec3s right = glms_vec3_normalize(glms_vec3_cross(forward, (vec3s) {{0.0f, 1.0f, 0.0f}}));
-
-    if (input_key_down(input, GLFW_KEY_W))
-    {
-        offset = glms_vec3_add(offset, forward);
-    }
-
-    if (input_key_down(input, GLFW_KEY_S))
-    {
-        offset = glms_vec3_sub(offset, forward);
-    }
-
-    if (input_key_down(input, GLFW_KEY_A))
-    {
-        offset = glms_vec3_sub(offset, right);
-    }
-
-    if (input_key_down(input, GLFW_KEY_D))
-    {
-        offset = glms_vec3_add(offset, right);
-    }
-
-    if (input_key_down(input, GLFW_KEY_SPACE))
-    {
-        offset = glms_vec3_add(offset, (vec3s) {{0.0f, 1.0f, 0.0f}});
-    }
-
-    if (input_key_down(input, GLFW_KEY_LEFT_SHIFT))
-    {
-        offset = glms_vec3_sub(offset, (vec3s) {{0.0f, 1.0f, 0.0f}});
-    }
-
-    if (!glms_vec3_eq(offset, 0.0f))
-    {
-        offset = glms_vec3_normalize(offset);
-        offset = glms_vec3_scale(offset, speed);
-    }
-    
-    camera_move(&world->camera, offset);
-}
-
 void world_update(struct World* world, struct Input* input)
 {
-    world_move_camera(world, input);
+    ivec2s player_chunk_offset = world_to_chunk_offset(vec3s_to_ivec3s(world->player.position));
 
-    ivec2s player_chunk_offset = world_to_chunk_offset(vec3s_to_ivec3s(world->camera.position));
-
-    for (int dx = -RENDER_DISTANCE; dx <= RENDER_DISTANCE; dx++)
+    for (int dx = -world->render_distance; dx <= world->render_distance; dx++)
     {
-        for (int dz = -RENDER_DISTANCE; dz <= RENDER_DISTANCE; dz++)
+        for (int dz = -world->render_distance; dz <= world->render_distance; dz++)
         {
             ivec2s offset = glms_ivec2_add(player_chunk_offset, (ivec2s){{dx, dz}});
 
-            if (abs(glms_ivec2_distance(offset, player_chunk_offset)) <= RENDER_DISTANCE)
-            {
-                world_load_chunk(world, offset);
-            }
+            world_load_chunk(world, offset);
         }
     }
 
@@ -245,49 +177,24 @@ void world_update(struct World* world, struct Input* input)
     {
         struct Chunk* chunk = world->chunks[i];
 
-        if (abs(glms_ivec2_distance(chunk->offset, player_chunk_offset)) > RENDER_DISTANCE)
+        int dx = abs(chunk->offset.x - player_chunk_offset.x);
+        int dz = abs(chunk->offset.y - player_chunk_offset.y);
+
+        if (dx > world->render_distance + 2 || dz > world->render_distance + 2)
         {
             world_unload_chunk(world, i);
-            // do NOT increment i here, because world_unload_chunk swapped in a new chunk at index i
             continue;
         }
 
         i++;
     }
 
-    for (enum BlockId i = 1; i < BLOCK_TOTAL; i++)
-    {
-        if (input_key_down(input, GLFW_KEY_0 + i))
-        {
-            world->selected_block = i;
-        }
-    }
-
-    ivec3s hit, face = GLMS_IVEC3_ZERO;
-    
-    bool target_hit = world_ray_cast(world, world->camera.position, world->camera.front, 8.0f, &hit, &face);
-
-    if (target_hit)
-    {
-        // break block
-        if (input_mouse_pressed(input, GLFW_MOUSE_BUTTON_LEFT))
-        {
-            world_set_block(world, hit, BLOCK_AIR);
-        }
-
-        // place block
-        if (input_mouse_pressed(input, GLFW_MOUSE_BUTTON_RIGHT))
-        {
-            world_set_block(world, glms_ivec3_add(hit, face), world->selected_block);
-        }
-    }
-
-    camera_update(&world->camera);
+    player_update(&world->player, input);
 }
 
 void world_render(struct World* world, struct Renderer* renderer)
 {
-    renderer->camera = &world->camera;
+    renderer->camera = &world->player.camera;
 
     for (size_t i = 0; i < world->chunk_count; i++)
     {
