@@ -2,48 +2,48 @@
 
 static struct Block blocks[BLOCK_TOTAL] =
 {
-    [BLOCK_AIR] = (struct Block)
+    [BLOCK_AIR] =
     {
         .solid = false,
         .transparent = true
     },
 
-    [BLOCK_DIRT] = (struct Block)
+    [BLOCK_DIRT] =
     {
         .solid = true,
         .transparent = false,
         .tile_index = { 2, 2, 2, 2, 2, 2 }
     },
 
-    [BLOCK_GRASS] = (struct Block)
+    [BLOCK_GRASS] =
     {
         .solid = true,
         .transparent = false,
         .tile_index = { 3, 3, 3, 3, 0, 2 }
     },
 
-    [BLOCK_STONE] = (struct Block)
+    [BLOCK_STONE] =
     {
         .solid = true,
         .transparent = false,
         .tile_index = { 1, 1, 1, 1, 1, 1 }
     },
 
-    [BLOCK_SAND] = (struct Block)
+    [BLOCK_SAND] =
     {
         .solid = true,
         .transparent = false,
         .tile_index = { 18, 18, 18, 18, 18, 18 }
     },
 
-    [BLOCK_WATER] = (struct Block)
+    [BLOCK_WATER] =
     {
-        .solid = true, // temporarily set to solid
+        .solid = false,
         .transparent = true,
         .tile_index = { 205, 205, 205, 205, 205, 205 }
     },
 
-    [BLOCK_WOOD] = (struct Block)
+    [BLOCK_WOOD] =
     {
         .solid = true,
         .transparent = false,
@@ -56,12 +56,17 @@ bool block_is_solid(enum BlockId id)
     return blocks[id].solid;
 }
 
+bool block_is_liquid(enum BlockId id)
+{
+    return id == BLOCK_WATER;
+}
+
 bool block_is_transparent(enum BlockId id)
 {
     return blocks[id].transparent;
 }
 
-uint16_t block_get_tile_index(enum BlockId id, int face)
+uint8_t block_get_tile_index(enum BlockId id, int face)
 {
     assert(id != BLOCK_AIR);
     return blocks[id].tile_index[face];

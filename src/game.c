@@ -16,16 +16,15 @@ static void update(struct Game* game, float dt)
 static void render(struct Game* game)
 {
     renderer_clear(&game->renderer, 0.62f, 0.81f, 1.0f, 1.0f);
-
     world_render(&game->world, &game->renderer);
 }
 
 void game_init(struct Game* game)
 {
-    window_init(&game->window, 1920, 1080, "Minecraft", game);
+    window_init(&game->window, 1920, 1080, "Minecraft");
     renderer_init(&game->renderer);
     input_init(&game->input, &game->window);
-    world_init(&game->world, 0);
+    world_init(&game->world);
 }
 
 void game_run(struct Game* game)

@@ -21,11 +21,12 @@ struct Block
 {
     bool solid;
     bool transparent;
-    uint16_t tile_index[6]; // texture location for each block face in the atlas
+    uint8_t tile_index[6]; // texture location for each block face in the atlas
 };
 
 bool block_is_solid(enum BlockId id);
+bool block_is_liquid(enum BlockId id);
 bool block_is_transparent(enum BlockId id);
-uint16_t block_get_tile_index(enum BlockId id, int face);
+uint8_t block_get_tile_index(enum BlockId id, int face);
 
 #endif

@@ -28,9 +28,9 @@ void worldgen_generate_terrain(struct Chunk* chunk)
             float noise = fnlGetNoise2D(&terrain_noise, (float)world_pos.x, (float)world_pos.z);
 
             // Normalize
-            float n = (noise + 1.0f) * 0.5f;
+            float h = (noise + 1.0f) * 0.5f;
 
-            float h = (n * 0.6f) + (n * n * 0.4f);
+            // float h = (n * 0.6f) + (n * n * 0.4f);
 
             int terrain_height = (int)(h * CHUNK_HEIGHT);
 
@@ -67,13 +67,24 @@ void worldgen_generate_terrain(struct Chunk* chunk)
                     }
                     else
                     {
+                        // Sand underwater
+                        if (terrain_height < SEA_LEVEL)
+                        {
+                            if (y == terrain_height || y > terrain_height - 3)
+                                block = BLOCK_SAND;
+                            else
+                                block = BLOCK_STONE;
+                        }
                         // Plains
-                        if (y == terrain_height)
-                            block = BLOCK_GRASS;
-                        else if (y > terrain_height - 3)
-                            block = BLOCK_DIRT;
                         else
-                            block = BLOCK_STONE;
+                        {
+                            if (y == terrain_height)
+                                block = BLOCK_GRASS;
+                            else if (y > terrain_height - 3)
+                                block = BLOCK_DIRT;
+                            else
+                                block = BLOCK_STONE;
+                        }
                     }
                 }
 

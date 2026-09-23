@@ -21,13 +21,6 @@ struct World
     size_t chunk_capacity;
 };
 
-struct Ray
-{
-    bool hit;
-    ivec3s target_block;
-    ivec3s normal;
-};
-
 // Convert world position to chunk offset
 static inline ivec2s world_to_chunk_offset(ivec3s world_pos)
 {
@@ -47,7 +40,7 @@ static inline ivec3s world_to_local_pos(ivec3s world_pos)
     };
 }
 
-void world_init(struct World* world, int seed);
+void world_init(struct World* world);
 bool world_ray_cast(struct World* world, vec3s origin, vec3s direction, float max_distance, ivec3s* hit, ivec3s* normal);
 struct Chunk* world_get_chunk(struct World* world, ivec2s offset);
 uint8_t world_get_block(struct World* world, ivec3s pos);

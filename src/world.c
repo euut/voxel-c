@@ -1,6 +1,19 @@
 #include "world.h"
 
-void world_init(struct World* world, int seed)
+static ivec3s camera_pos;
+
+static int compare_chunks_back_to_front(const void *a, const void *b)
+{
+    const struct Chunk* chunkA = *(const struct Chunk**)a;
+    const struct Chunk* chunkB = *(const struct Chunk**)b;
+
+    int distA = glms_ivec3_norm2(glms_ivec3_sub(camera_pos, chunk_local_to_world(chunkA->offset, GLMS_IVEC3_ZERO)));
+    int distB = glms_ivec3_norm2(glms_ivec3_sub(camera_pos, chunk_local_to_world(chunkB->offset, GLMS_IVEC3_ZERO)));
+
+    return -(distA - distB);
+}
+
+void world_init(struct World* world)
 {
     memset(world, 0, sizeof(struct World));
     
@@ -8,7 +21,8 @@ void world_init(struct World* world, int seed)
     world->render_distance = 8;
 
     player_init(&world->player, (vec3s) {{ 0, 64, 0 }}, world);
-    worldgen_init(seed);
+
+    worldgen_init(12345);
 }
 
 bool world_ray_cast(struct World* world, vec3s origin, vec3s direction, float max_distance, ivec3s* hit, ivec3s* normal)
@@ -39,7 +53,7 @@ bool world_ray_cast(struct World* world, vec3s origin, vec3s direction, float ma
     
     while (distance <= max_distance)
     {
-        if (world_get_block(world, pos) != BLOCK_AIR)
+        if (world_get_block(world, pos) != BLOCK_AIR && world_get_block(world, pos) != BLOCK_WATER)
         {
             *hit = pos;
             *normal = n;
@@ -196,9 +210,21 @@ void world_render(struct World* world, struct Renderer* renderer)
 {
     renderer->camera = &world->player.camera;
 
+    // render opaque meshes first
     for (size_t i = 0; i < world->chunk_count; i++)
     {
-        chunk_render(world->chunks[i], renderer);
+        chunk_render_opaque(world->chunks[i], renderer);
+    }
+
+    camera_pos = vec3s_to_ivec3s(world->player.camera.position);
+
+    // sort chunks back to front based on distance from camera
+    qsort(world->chunks, world->chunk_count, sizeof(struct Chunk*), compare_chunks_back_to_front);
+
+    // render transparent meshes after sorting
+    for (size_t i = 0; i < world->chunk_count; i++)
+    {
+        chunk_render_transparent(world->chunks[i], renderer);
     }
 }
 

@@ -19,10 +19,11 @@ struct World;
 struct Chunk
 {
     ivec2s offset; // chunk coords (cx, cz)
-    
+
     uint8_t* blocks;
-    
-    struct Mesh mesh;
+
+    struct ChunkMesh opaque_mesh;
+    struct ChunkMesh transparent_mesh;
 
     struct World* world;
 
@@ -48,7 +49,8 @@ void chunk_init(struct Chunk* chunk, struct World* world, ivec2s offset);
 uint8_t chunk_get_block(struct Chunk* chunk, ivec3s pos);
 void chunk_set_block(struct Chunk* chunk, ivec3s pos, uint8_t block_id);
 void chunk_build_mesh(struct Chunk* chunk, struct TextureAtlas* atlas);
-void chunk_render(struct Chunk* chunk, struct Renderer* renderer);
+void chunk_render_opaque(struct Chunk* chunk, struct Renderer* renderer);
+void chunk_render_transparent(struct Chunk* chunk, struct Renderer* renderer);
 void chunk_destroy(struct Chunk* chunk);
 
 #endif

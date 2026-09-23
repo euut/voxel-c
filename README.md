@@ -4,7 +4,7 @@ A simple voxel engine made in C and OpenGL without using any third-party game en
 
 ## Screenshots
 
-![Screenshot](https://github.com/user-attachments/assets/3aff6374-20d7-461e-a6ae-431b391d7ce2)
+![Screenshot](https://github.com/user-attachments/assets/0690e31e-4796-4ac9-9735-f5fce2c8decf)
 
 ## Features
 
@@ -14,6 +14,8 @@ A simple voxel engine made in C and OpenGL without using any third-party game en
 - Chunk loading and unloading
 - Block placing/breaking
 - Different block types
+- Semi-transparent rendering (sort chunks to render water properly)
+- Distant fog effect
 - More features coming in the future...hopefully
 
 ## Building the Project

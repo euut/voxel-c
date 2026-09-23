@@ -5,7 +5,7 @@ static void resize_callback(GLFWwindow* handle, int width, int height)
     glViewport(0, 0, width, height);
 }
 
-void window_init(struct Window* window, int width, int height, const char* title, void* game)
+void window_init(struct Window* window, int width, int height, const char* title)
 {
     if (!glfwInit())
     {

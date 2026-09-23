@@ -62,7 +62,7 @@ struct TextureAtlas texture_atlas_create(const char* path, int tile_size)
 	return atlas;
 }
 
-vec2s texture_atlas_get_uv_offset(struct TextureAtlas* atlas, uint16_t tile_index)
+vec2s texture_atlas_get_uv_offset(struct TextureAtlas* atlas, uint8_t tile_index)
 {
 	int col = tile_index % atlas->tiles.x;
 	int row = tile_index / atlas->tiles.x;

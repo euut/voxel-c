@@ -17,47 +17,62 @@ static const float CUBE_UVS[8] = {
     1, 1
 };
 
-void mesh_init(struct Mesh* mesh)
+void mesh_init(struct ChunkMesh* mesh)
 {
-    memset(mesh, 0, sizeof(struct Mesh));
+    memset(mesh, 0, sizeof(struct ChunkMesh));
     mesh->vertices = malloc(CHUNK_BLOCK_TOTAL * 24 * sizeof(struct Vertex));
     mesh->indices = malloc(CHUNK_BLOCK_TOTAL * 36 * sizeof(uint16_t));
 }
 
-void mesh_reset(struct Mesh* mesh)
+void mesh_reset(struct ChunkMesh* mesh)
 {
     mesh->vertex_count = 0;
     mesh->indices_count = 0;
 }
 
-void mesh_add_face(struct Mesh* mesh, vec2s uv_offset, vec2s tile_unit, vec3s position, int face)
+void mesh_add_face(struct ChunkMesh* mesh, vec2s uv_offset, vec2s tile_unit, vec3s position, int face, int is_liquid)
 {
     // Add 4 vertices for this face
     for (int i = 0; i < 4; i++)
     {
         vec3s v = CUBE_VERTICES[face][i];
         mesh->vertices[mesh->vertex_count+i].position.x = position.x + v.x;
-        mesh->vertices[mesh->vertex_count+i].position.y = position.y + v.y;
+        mesh->vertices[mesh->vertex_count+i].position.y = position.y + (is_liquid ? 0.9f : 1.0f) * v.y;
         mesh->vertices[mesh->vertex_count+i].position.z = position.z + v.z;
         mesh->vertices[mesh->vertex_count+i].uvs.x = uv_offset.x + tile_unit.x * CUBE_UVS[i*2 + 0];
         mesh->vertices[mesh->vertex_count+i].uvs.y = uv_offset.y + tile_unit.y * CUBE_UVS[i*2 + 1];
+
+        // voxel shading
+        switch (face)
+        {
+            case FACE_TOP:
+                mesh->vertices[mesh->vertex_count+i].shading = 1.0f;
+                break;
+            case FACE_FRONT:
+            case FACE_BACK:
+                mesh->vertices[mesh->vertex_count+i].shading = 0.9f;
+                break;
+            case FACE_LEFT:
+            case FACE_RIGHT:
+                mesh->vertices[mesh->vertex_count+i].shading = 0.8f;
+                break;
+            default:
+                mesh->vertices[mesh->vertex_count+i].shading = 0.6f;
+                break;
+        }
     }
 
-    // Add indices for two triangles
-    for (int i = 0; i < 6; i++)
-    {
-        mesh->indices[mesh->indices_count++] = mesh->vertex_count + 0;
-        mesh->indices[mesh->indices_count++] = mesh->vertex_count + 1;
-        mesh->indices[mesh->indices_count++] = mesh->vertex_count + 2;
-        mesh->indices[mesh->indices_count++] = mesh->vertex_count + 2;
-        mesh->indices[mesh->indices_count++] = mesh->vertex_count + 3;
-        mesh->indices[mesh->indices_count++] = mesh->vertex_count + 0;
-    }
+    mesh->indices[mesh->indices_count++] = mesh->vertex_count + 0;
+    mesh->indices[mesh->indices_count++] = mesh->vertex_count + 1;
+    mesh->indices[mesh->indices_count++] = mesh->vertex_count + 2;
+    mesh->indices[mesh->indices_count++] = mesh->vertex_count + 2;
+    mesh->indices[mesh->indices_count++] = mesh->vertex_count + 3;
+    mesh->indices[mesh->indices_count++] = mesh->vertex_count + 0;
 
     mesh->vertex_count += 4;
 }
 
-void mesh_upload(struct Mesh* mesh)
+void mesh_upload(struct ChunkMesh* mesh)
 {
     glGenVertexArrays(1, &mesh->vao);
     glBindVertexArray(mesh->vao);
@@ -77,9 +92,13 @@ void mesh_upload(struct Mesh* mesh)
     // uvs
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(struct Vertex), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
+
+    // shading
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, sizeof(struct Vertex), (void*)(5 * sizeof(float)));
 }
 
-void mesh_render(struct Mesh* mesh, struct Renderer* renderer)
+void mesh_render(struct ChunkMesh* mesh, struct Renderer* renderer)
 {
     renderer_use_shader(renderer, SHADER_BASIC);
     shader_uniform_mat4(renderer->shader, "m", GLMS_MAT4_IDENTITY);
@@ -92,7 +111,7 @@ void mesh_render(struct Mesh* mesh, struct Renderer* renderer)
     glBindVertexArray(0);
 }
 
-void mesh_destroy(struct Mesh* mesh)
+void mesh_destroy(struct ChunkMesh* mesh)
 {
     glDeleteBuffers(1, &mesh->vbo);
     glDeleteBuffers(1, &mesh->ibo);

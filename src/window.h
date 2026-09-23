@@ -12,7 +12,7 @@ struct Window
     int width, height;
 };
 
-void window_init(struct Window* window, int width, int height, const char* title, void* game);
+void window_init(struct Window* window, int width, int height, const char* title);
 void window_destroy(struct Window* window);
 
 #endif
