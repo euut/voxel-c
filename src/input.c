@@ -47,7 +47,7 @@ void input_init(struct Input* input, struct Window* window)
 {
     memset(input, 0, sizeof(struct Input));
 
-    glfwSetInputMode(window->handle, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+    glfwSetInputMode(window->handle, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     glfwSetWindowUserPointer(window->handle, input);
     glfwSetKeyCallback(window->handle, key_callback);

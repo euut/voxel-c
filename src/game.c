@@ -5,9 +5,16 @@ static void update(struct Game* game, float dt)
     input_update(&game->input);
     world_update(&game->world, &game->input);
 
-    if (input_key_pressed(&game->input, GLFW_KEY_F))
-    {
+    if (input_key_pressed(&game->input, GLFW_KEY_F)) {
         renderer_enable_wireframe(&game->renderer);
+    }
+
+    if (input_key_pressed(&game->input, GLFW_KEY_F11)) {
+        window_toggle_fullscreen(&game->window);
+    }
+
+    if (input_key_pressed(&game->input, GLFW_KEY_ESCAPE)) {
+        glfwSetWindowShouldClose(game->window.handle, GLFW_TRUE);
     }
 
     game->input.mouse_delta = GLMS_VEC2_ZERO;

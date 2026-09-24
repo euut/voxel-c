@@ -41,6 +41,18 @@ void window_init(struct Window* window, int width, int height, const char* title
 	glfwSwapInterval(1);
 }
 
+void window_toggle_fullscreen(struct Window* window)
+{
+    window->fullscreen = !window->fullscreen;
+
+    if (window->fullscreen) {
+        glfwMaximizeWindow(window->handle);
+    }
+    else {
+        glfwRestoreWindow(window->handle);
+    }
+}
+
 void window_destroy(struct Window* window)
 {
     glfwDestroyWindow(window->handle);

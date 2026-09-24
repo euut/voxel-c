@@ -60,9 +60,10 @@ Run:
 - `WASD` - Movement
 - `Space` - Fly up
 - `Left Shift` - Fly down
-- `Left Ctrl` - Sprint
+- `Left Ctrl` - Accelerate (hold while moving)
 - `Left Click` - Break block
 - `Right Click` - Place block
 - `1-6` - Switch block types
 - `F` - Toggle wireframe rendering
-
+- `F11` - Toggle fullscreen
+- `Esc` - Exit and close
