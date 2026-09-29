@@ -10,7 +10,6 @@
 struct ChunkEntry
 {
     uint64_t key;
-    uint32_t distance;
     struct Chunk* chunk;
     bool occupied;
 };
@@ -26,7 +25,6 @@ struct ChunkMap* chunkmap_create(size_t capacity);
 struct Chunk* chunkmap_get(struct ChunkMap* map, int32_t x, int32_t z);
 void chunkmap_put(struct ChunkMap* map, int32_t x, int32_t z, struct Chunk* chunk);
 void chunkmap_remove(struct ChunkMap* map, int32_t x, int32_t z);
-void chunkmap_resize(struct ChunkMap* map);
 void chunkmap_destroy(struct ChunkMap* map);
 
 #endif
