@@ -2,25 +2,25 @@
 
 uniform sampler2D tex;
 
-in vec2 v_TexCoord;
-in float v_Distance;
-in float v_Shading;
+in vec2 v_texcoord;
+in float v_distance;
+in float v_shading;
 
-out vec4 FragColor;
+out vec4 frag_color;
 
-const vec3 fogColor = vec3(0.62, 0.81, 1.0);
-const float fogEnd = 120;
-const float fogStart = fogEnd * 0.7;
+const vec3 fog_color = vec3(0.62, 0.81, 1.0);
+const float fog_end = 120;
+const float fog_start = fog_end * 0.7;
 
 void main()
 {
-    vec4 texColor = texture(tex, v_TexCoord);
-    if (texColor.a < 0.1) discard;
+    vec4 tex_color = texture(tex, v_texcoord);
+    if (tex_color.a < 0.1) discard;
 
-    float fogFactor = (v_Distance - fogStart) / (fogEnd - fogStart);
-    fogFactor = clamp(fogFactor, 0.0, 1.0);
+    float fog_factor = (v_distance - fog_start) / (fog_end - fog_start);
+    fog_factor = clamp(fog_factor, 0.0, 1.0);
 
-    vec3 finalColor = mix(texColor.rgb * v_Shading, fogColor, fogFactor);
+    vec3 final_color = mix(tex_color.rgb * v_shading, fog_color, fog_factor);
 
-    FragColor = vec4(finalColor, texColor.a);
+    frag_color = vec4(final_color, tex_color.a);
 }

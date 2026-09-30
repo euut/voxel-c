@@ -3,8 +3,7 @@
 static void update(struct Game* game, float dt)
 {
     input_update(&game->input);
-    world_update(&game->world, &game->input);
-
+    
     if (input_key_pressed(&game->input, GLFW_KEY_F)) {
         renderer_enable_wireframe(&game->renderer);
     }
@@ -16,6 +15,8 @@ static void update(struct Game* game, float dt)
     if (input_key_pressed(&game->input, GLFW_KEY_ESCAPE)) {
         glfwSetWindowShouldClose(game->window.handle, GLFW_TRUE);
     }
+
+    world_update(&game->world, &game->input);
 
     game->input.mouse_delta = GLMS_VEC2_ZERO;
 }

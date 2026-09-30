@@ -4,25 +4,13 @@ static ivec3s camera_pos;
 
 static int compare_chunks_back_to_front(const void *a, const void *b)
 {
-    const struct Chunk* chunkA = *(const struct Chunk**)a;
-    const struct Chunk* chunkB = *(const struct Chunk**)b;
+    const struct Chunk* aa = *(const struct Chunk**)a;
+    const struct Chunk* bb = *(const struct Chunk**)b;
 
-    int distA = glms_ivec3_norm2(glms_ivec3_sub(camera_pos, chunk_local_to_world(chunkA->offset, GLMS_IVEC3_ZERO)));
-    int distB = glms_ivec3_norm2(glms_ivec3_sub(camera_pos, chunk_local_to_world(chunkB->offset, GLMS_IVEC3_ZERO)));
+    int da = glms_ivec3_norm2(glms_ivec3_sub(camera_pos, chunk_local_to_world(aa->offset, GLMS_IVEC3_ZERO)));
+    int db = glms_ivec3_norm2(glms_ivec3_sub(camera_pos, chunk_local_to_world(bb->offset, GLMS_IVEC3_ZERO)));
 
-    return -(distA - distB);
-}
-
-void world_init(struct World* world)
-{
-    memset(world, 0, sizeof(struct World));
-    
-    world->chunkmap = chunkmap_create(128);
-    world->render_distance = 8;
-
-    player_init(&world->player, (vec3s) {{ 0, 64, 0 }}, world);
-
-    worldgen_init(12345);
+    return (db > da) - (db < da);;
 }
 
 bool world_ray_cast(struct World* world, vec3s origin, vec3s direction, float max_distance, ivec3s* hit, ivec3s* normal)
@@ -53,60 +41,61 @@ bool world_ray_cast(struct World* world, vec3s origin, vec3s direction, float ma
     
     while (distance <= max_distance)
     {
-        if (world_get_block(world, pos) != BLOCK_AIR && world_get_block(world, pos) != BLOCK_WATER)
+        if (block_is_solid(world_get_block(world, pos)))
         {
             *hit = pos;
             *normal = n;
             return true;
         }
 
-        if (tmax.x < tmax.y)
+        if (tmax.x < tmax.y && tmax.x < tmax.z)
         {
-            if (tmax.x < tmax.z)
-            {
-                pos.x += step.x;
-                distance = tmax.x;
-                tmax.x += tdelta.x;
-                n = (ivec3s) {{-step.x, 0, 0}};
-            }
-            else
-            {
-                pos.z += step.z;
-                distance = tmax.z;
-                tmax.z += tdelta.z;
-                n = (ivec3s) {{0, 0, -step.z}};
-            }
+            pos.x += step.x;
+            distance = tmax.x;
+            tmax.x += tdelta.x;
+            n = (ivec3s){{-step.x, 0, 0}};
+        }
+        else if (tmax.y < tmax.z)
+        {
+            pos.y += step.y;
+            distance = tmax.y;
+            tmax.y += tdelta.y;
+            n = (ivec3s){{0, -step.y, 0}};
         }
         else
         {
-            if (tmax.y < tmax.z)
-            {
-                pos.y += step.y;
-                distance = tmax.y;
-                tmax.y += tdelta.y;
-                n = (ivec3s) {{0, -step.y, 0}};
-            }
-            else
-            {
-                pos.z += step.z;
-                distance = tmax.z;
-                tmax.z += tdelta.z;
-                n = (ivec3s) {{0, 0, -step.z}};
-            }
+            pos.z += step.z;
+            distance = tmax.z;
+            tmax.z += tdelta.z;
+            n = (ivec3s){{0, 0, -step.z}};
         }
     }
     
     return false;
 }
 
+void world_init(struct World* world)
+{
+    memset(world, 0, sizeof(struct World));
+    
+    world->map = chunkmap_create(1024);
+    
+    world->chunks = malloc(GRID_SIZE * GRID_SIZE * sizeof(struct Chunk*));
+    world->chunk_capacity = GRID_SIZE * GRID_SIZE;
+
+    player_init(&world->player, (vec3s) {{ 0, 64, 0 }}, world);
+
+    worldgen_init(12345);
+}
+
 struct Chunk* world_get_chunk(struct World* world, ivec2s offset)
 {
-    return chunkmap_get(world->chunkmap, offset.x, offset.y);
+    return chunkmap_get(world->map, offset.x, offset.y);
 }
 
 bool world_chunk_exists(struct World* world, ivec2s offset)
 {
-    return world_get_chunk(world, offset) != NULL;
+    return chunkmap_get(world->map, offset.x, offset.y) != NULL;
 }
 
 uint8_t world_get_block(struct World* world, ivec3s pos)
@@ -139,7 +128,8 @@ void world_set_block(struct World* world, ivec3s pos, uint8_t block_id)
 void world_load_chunk(struct World* world, ivec2s offset)
 {
     // Skip chunks that already exist
-    if (world_chunk_exists(world, offset)) return;
+    if (world_chunk_exists(world, offset))
+        return;
 
     struct Chunk* chunk = malloc(sizeof(struct Chunk));
 
@@ -147,14 +137,7 @@ void world_load_chunk(struct World* world, ivec2s offset)
 
     worldgen_generate_terrain(chunk);
 
-    chunkmap_put(world->chunkmap, offset.x, offset.y, chunk);
-
-    // Add new chunk to dynamic list
-    if (world->chunk_count + 1 > world->chunk_capacity)
-    {
-        world->chunk_capacity = world->chunk_capacity ? world->chunk_capacity * 2 : 64;
-        world->chunks = realloc(world->chunks, world->chunk_capacity * sizeof(struct Chunk*));
-    }
+    chunkmap_put(world->map, offset.x, offset.y, chunk);
     
     world->chunks[world->chunk_count++] = chunk;
 }
@@ -163,7 +146,7 @@ void world_unload_chunk(struct World* world, size_t index)
 {
     struct Chunk* chunk = world->chunks[index];
 
-    chunkmap_remove(world->chunkmap, chunk->offset.x, chunk->offset.y);
+    chunkmap_remove(world->map, chunk->offset.x, chunk->offset.y);
 
     world->chunks[index] = world->chunks[--world->chunk_count];
 
@@ -175,13 +158,11 @@ void world_update(struct World* world, struct Input* input)
 {
     ivec2s player_chunk_offset = world_to_chunk_offset(vec3s_to_ivec3s(world->player.position));
 
-    for (int dx = -world->render_distance; dx <= world->render_distance; dx++)
+    for (int dx = -RENDER_DIST; dx <= RENDER_DIST; dx++)
     {
-        for (int dz = -world->render_distance; dz <= world->render_distance; dz++)
+        for (int dz = -RENDER_DIST; dz <= RENDER_DIST; dz++)
         {
-            ivec2s offset = glms_ivec2_add(player_chunk_offset, (ivec2s){{dx, dz}});
-
-            world_load_chunk(world, offset);
+            world_load_chunk(world, glms_ivec2_add(player_chunk_offset, (ivec2s){{dx, dz}}));
         }
     }
 
@@ -194,7 +175,7 @@ void world_update(struct World* world, struct Input* input)
         int dx = abs(chunk->offset.x - player_chunk_offset.x);
         int dz = abs(chunk->offset.y - player_chunk_offset.y);
 
-        if (dx > world->render_distance + 2 || dz > world->render_distance + 2)
+        if (dx > RENDER_DIST + BUFFER_DIST || dz > RENDER_DIST + BUFFER_DIST)
         {
             world_unload_chunk(world, i);
             continue;
@@ -230,7 +211,7 @@ void world_render(struct World* world, struct Renderer* renderer)
 
 void world_destroy(struct World* world)
 {
-    chunkmap_destroy(world->chunkmap);
+    chunkmap_destroy(world->map);
 
     for (size_t i = 0; i < world->chunk_count; i++)
     {

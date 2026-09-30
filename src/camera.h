@@ -13,7 +13,7 @@ struct Camera
     mat4s view_matrix;
 
     float yaw, pitch;
-    float fov, aspect, near, far;
+    float fov, near, far;
 };
 
 void camera_init(struct Camera* camera, vec3s position, float fov);

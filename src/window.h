@@ -7,6 +7,9 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
+extern int window_width;
+extern int window_height;
+
 struct Window
 {
     GLFWwindow* handle;

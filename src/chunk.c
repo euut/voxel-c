@@ -129,9 +129,6 @@ void chunk_build_mesh(struct Chunk* chunk, struct TextureAtlas* atlas)
                     ivec3s neighbor_pos = glms_ivec3_add(pos, CUBE_FACE_NORMALS[face]);
                     ivec3s neighbor_world_pos = glms_ivec3_add(world_pos, CUBE_FACE_NORMALS[face]);
                     
-                    uint8_t tile_index = block_get_tile_index(block, face);
-                    vec2s uv_offset = texture_atlas_get_uv_offset(atlas, tile_index);
-
                     if (chunk_in_bound(neighbor_pos)) {
                         neighbor_block = chunk->blocks[chunk_block_index(neighbor_pos)];
                     }
@@ -141,6 +138,9 @@ void chunk_build_mesh(struct Chunk* chunk, struct TextureAtlas* atlas)
                     
                     if (should_render_face_between(block, neighbor_block))
                     {
+                        uint8_t tile_index = block_get_tile_index(block, face);
+                        vec2s uv_offset = texture_atlas_get_uv_offset(atlas, tile_index);
+
                         // Pick which mesh (opaque or transparent) to send this face to
                         struct ChunkMesh* target_mesh = block_is_transparent(block) ? &chunk->transparent_mesh : &chunk->opaque_mesh;
 

@@ -7,7 +7,6 @@ void camera_init(struct Camera* camera, vec3s position, float fov)
     camera->position = position;
 
     camera->fov = fov;
-    camera->aspect = 1920.0f / 1080.0f;
     camera->near = 0.01f;
     camera->far = 1000.0f;
 
@@ -28,7 +27,7 @@ void camera_update(struct Camera* camera)
     camera->up = glms_vec3_normalize(glms_vec3_cross(camera->right, camera->front));
 
     camera->view_matrix = glms_lookat(camera->position, glms_vec3_add(camera->position, camera->front), camera->up);
-    camera->projection_matrix = glms_perspective(camera->fov, camera->aspect, camera->near, camera->far);
+    camera->projection_matrix = glms_perspective(camera->fov, (float)window_width / (float)window_height, camera->near, camera->far);
 }
 
 void camera_rotate(struct Camera* camera, struct Input* input)
@@ -43,7 +42,11 @@ void camera_rotate(struct Camera* camera, struct Input* input)
     if (camera->pitch < -89.0f)
         camera->pitch = -89.0f;
     
-    camera->yaw = fmodf(camera->yaw + 180.0f, 360.0f) - 180.0f;
+    camera->yaw = fmodf(camera->yaw + 180.0f, 360.0f);
+
+    if (camera->yaw < 0.0f)
+        camera->yaw += 360.0f;
+    camera->yaw -= 180.0f;
 }
 
 void camera_move(struct Camera* camera, vec3s offset)

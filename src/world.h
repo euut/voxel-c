@@ -8,15 +8,17 @@
 #include "worldgen.h"
 #include "util/math.h"
 
+#define RENDER_DIST 8
+#define BUFFER_DIST 3
+#define GRID_SIZE ((RENDER_DIST * 2) + 1 + (BUFFER_DIST * 2))
+
 struct World
 {
-    int render_distance;
-
     struct Player player;
 
-    struct ChunkMap* chunkmap;
+    struct ChunkMap* map;
 
-    struct Chunk** chunks;  // dynamic list of loaded chunks
+    struct Chunk** chunks;  // list of loaded chunks for iteration
     size_t chunk_count;
     size_t chunk_capacity;
 };
