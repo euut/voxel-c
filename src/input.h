@@ -2,7 +2,7 @@
 #define INPUT_H
 
 #include "window.h"
-#include "util/math.h"
+#include "util/util.h"
 #include <stdbool.h>
 #include <string.h>
 
@@ -24,9 +24,25 @@ struct Input
 
 void input_init(struct Input* input, struct Window* window);
 void input_update(struct Input* input);
-bool input_key_down(struct Input* input, int key);
-bool input_key_pressed(struct Input* input, int key);
-bool input_mouse_down(struct Input* input, int button);
-bool input_mouse_pressed(struct Input* input, int button);
+
+static inline bool input_key_down(struct Input* input, int key)
+{
+    return input->keys[key].down;
+}
+
+static inline bool input_key_pressed(struct Input* input, int key)
+{
+    return input->keys[key].pressed;
+}
+
+static inline bool input_mouse_down(struct Input* input, int button)
+{
+    return input->mouse[button].down;
+}
+
+static inline bool input_mouse_pressed(struct Input* input, int button)
+{
+    return input->mouse[button].pressed;
+}
 
 #endif

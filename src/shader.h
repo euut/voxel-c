@@ -2,7 +2,7 @@
 #define SHADER_H
 
 #include "texture.h"
-#include "util/math.h"
+#include "util/util.h"
 
 #include <glad/glad.h>
 #include <stdio.h>

@@ -1,5 +1,18 @@
 #include "world.h"
 
+static ivec2s player_chunk_offset;
+
+static int compare_queued_chunks_back_to_front(const void *a, const void *b)
+{
+    const ivec2s *offset_a = (const ivec2s*)a;
+    const ivec2s *offset_b = (const ivec2s*)b;
+
+    int da = glms_ivec2_distance2(player_chunk_offset, *offset_a);
+    int db = glms_ivec2_distance2(player_chunk_offset, *offset_b);
+    
+    return (da < db) - (da > db);
+}
+
 static ivec3s camera_pos;
 
 static int compare_chunks_back_to_front(const void *a, const void *b)
@@ -7,10 +20,10 @@ static int compare_chunks_back_to_front(const void *a, const void *b)
     const struct Chunk* aa = *(const struct Chunk**)a;
     const struct Chunk* bb = *(const struct Chunk**)b;
 
-    int da = glms_ivec3_norm2(glms_ivec3_sub(camera_pos, chunk_local_to_world(aa->offset, GLMS_IVEC3_ZERO)));
-    int db = glms_ivec3_norm2(glms_ivec3_sub(camera_pos, chunk_local_to_world(bb->offset, GLMS_IVEC3_ZERO)));
+    int da = glms_ivec3_distance2(camera_pos, chunk_local_to_world(aa->offset, GLMS_IVEC3_ZERO));
+    int db = glms_ivec3_distance2(camera_pos, chunk_local_to_world(bb->offset, GLMS_IVEC3_ZERO));
 
-    return (db > da) - (db < da);;
+    return (da < db) - (da > db);;
 }
 
 bool world_ray_cast(struct World* world, vec3s origin, vec3s direction, float max_distance, ivec3s* hit, ivec3s* normal)
@@ -79,9 +92,9 @@ void world_init(struct World* world)
     memset(world, 0, sizeof(struct World));
     
     world->map = chunkmap_create(1024);
-    
     world->chunks = malloc(GRID_SIZE * GRID_SIZE * sizeof(struct Chunk*));
-    world->chunk_capacity = GRID_SIZE * GRID_SIZE;
+
+    chunkqueue_init(&world->chunkqueue);
 
     player_init(&world->player, (vec3s) {{ 0, 64, 0 }}, world);
 
@@ -156,14 +169,28 @@ void world_unload_chunk(struct World* world, size_t index)
 
 void world_update(struct World* world, struct Input* input)
 {
-    ivec2s player_chunk_offset = world_to_chunk_offset(vec3s_to_ivec3s(world->player.position));
+    player_chunk_offset = world_to_chunk_offset(vec3s_to_ivec3s(world->player.position));
 
     for (int dx = -RENDER_DIST; dx <= RENDER_DIST; dx++)
     {
         for (int dz = -RENDER_DIST; dz <= RENDER_DIST; dz++)
         {
-            world_load_chunk(world, glms_ivec2_add(player_chunk_offset, (ivec2s){{dx, dz}}));
+            ivec2s offset = glms_ivec2_add(player_chunk_offset, (ivec2s){{dx, dz}});
+            
+            if (!world_chunk_exists(world, offset))
+            {
+                chunkqueue_push(&world->chunkqueue, offset);
+            }
         }
+    }
+
+    chunkqueue_sort(&world->chunkqueue, compare_queued_chunks_back_to_front);
+
+    // process one chunk per update
+    ivec2s next_chunk_offset;
+    if (chunkqueue_pop(&world->chunkqueue, &next_chunk_offset))
+    {
+        world_load_chunk(world, next_chunk_offset);
     }
 
     // unload chunks away from the player

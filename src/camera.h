@@ -2,7 +2,7 @@
 #define CAMERA_H
 
 #include "input.h"
-#include "util/math.h"
+#include "util/util.h"
 #include <string.h>
 
 struct Camera
@@ -12,7 +12,7 @@ struct Camera
     mat4s projection_matrix;
     mat4s view_matrix;
 
-    float yaw, pitch;
+    float yaw, pitch, sensitivity;
     float fov, near, far;
 };
 

@@ -9,6 +9,7 @@ void camera_init(struct Camera* camera, vec3s position, float fov)
     camera->fov = fov;
     camera->near = 0.01f;
     camera->far = 1000.0f;
+    camera->sensitivity = 0.4f;
 
     // Set an initial direction
     camera_update(camera);
@@ -32,10 +33,8 @@ void camera_update(struct Camera* camera)
 
 void camera_rotate(struct Camera* camera, struct Input* input)
 {
-    float sensitivity = 0.4f;
-
-    camera->yaw += input->mouse_delta.x * sensitivity;
-    camera->pitch -= input->mouse_delta.y * sensitivity;
+    camera->yaw += input->mouse_delta.x * camera->sensitivity;
+    camera->pitch -= input->mouse_delta.y * camera->sensitivity;
 
     if (camera->pitch > 89.0f)
         camera->pitch = 89.0f;

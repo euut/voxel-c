@@ -4,7 +4,7 @@
 #include "mesh.h"
 #include "block.h"
 #include "renderer.h"
-#include "util/math.h"
+#include "util/util.h"
 
 #include <stdbool.h>
 #include <stdint.h>

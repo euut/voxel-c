@@ -8,7 +8,7 @@ A simple voxel engine made in C and OpenGL without using any third-party game en
 
 ## Features
 
-- Procedural/infinite terrain generation
+- Procedural terrain generation
 - Face culling (faces that are not visible to the player are not rendered)
 - Chunk management system using a hashmap
 - Chunk loading and unloading
@@ -52,7 +52,7 @@ cmake --build .
 Run:
 
 ```bash
-.\voxel-c.exe
+.\voxel-c
 ```
 
 ## Controls

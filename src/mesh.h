@@ -1,8 +1,8 @@
 #ifndef MESH_H
 #define MESH_H
 
-#include "util/math.h"
 #include "renderer.h"
+#include "util/util.h"
 #include <glad/glad.h>
 #include <string.h>
 #include <stdint.h>
@@ -19,6 +19,13 @@ enum Face
     FACE_BOTTOM
 };
 
+struct Vertex
+{
+    vec3s position;
+    vec2s uvs;
+    float shading;
+};
+
 struct ChunkMesh
 {
     struct Vertex* vertices;
@@ -28,13 +35,6 @@ struct ChunkMesh
     size_t indices_count;
 
     unsigned int vao, vbo, ibo;
-};
-
-struct Vertex
-{
-    vec3s position;
-    vec2s uvs;
-    float shading;
 };
 
 void mesh_init(struct ChunkMesh* mesh);

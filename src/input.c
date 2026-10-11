@@ -69,23 +69,3 @@ void input_update(struct Input* input)
         input->mouse[i].last = input->mouse[i].down;
     }
 }
-
-bool input_key_down(struct Input* input, int key)
-{
-    return input->keys[key].down;
-}
-
-bool input_key_pressed(struct Input* input, int key)
-{
-    return input->keys[key].pressed;
-}
-
-bool input_mouse_down(struct Input* input, int button)
-{
-    return input->mouse[button].down;
-}
-
-bool input_mouse_pressed(struct Input* input, int button)
-{
-    return input->mouse[button].pressed;
-}

@@ -6,11 +6,19 @@
 #include "renderer.h"
 #include "chunkmap.h"
 #include "worldgen.h"
-#include "util/math.h"
+#include "util/util.h"
 
 #define RENDER_DIST 8
 #define BUFFER_DIST 3
-#define GRID_SIZE ((RENDER_DIST * 2) + 1 + (BUFFER_DIST * 2))
+#define GRID_SIZE ((RENDER_DIST + BUFFER_DIST) * 2 + 1)
+
+#define CHUNK_QUEUE_SIZE ((RENDER_DIST * 2) + 1) * ((RENDER_DIST * 2) + 1)
+
+struct ChunkQueue
+{
+    ivec2s offsets[CHUNK_QUEUE_SIZE];
+    uint32_t count;
+};
 
 struct World
 {
@@ -20,7 +28,8 @@ struct World
 
     struct Chunk** chunks;  // list of loaded chunks for iteration
     size_t chunk_count;
-    size_t chunk_capacity;
+
+    struct ChunkQueue chunkqueue;
 };
 
 // Convert world position to chunk offset
@@ -52,5 +61,48 @@ void world_unload_chunk(struct World* world, size_t index);
 void world_update(struct World* world, struct Input* input);
 void world_render(struct World* world, struct Renderer* renderer);
 void world_destroy(struct World* world);
+
+static inline void chunkqueue_init(struct ChunkQueue* q)
+{
+    q->count = 0;
+}
+
+static inline bool chunkqueue_contains(struct ChunkQueue* q, ivec2s offset)
+{
+    for (size_t i = 0; i < q->count; i++) {
+        if (q->offsets[i].x == offset.x && q->offsets[i].y == offset.y)
+            return true;
+    }
+    return false;
+}
+
+static inline void chunkqueue_push(struct ChunkQueue* q, ivec2s offset)
+{
+    if (q->count >= CHUNK_QUEUE_SIZE)
+        return;
+
+    if (chunkqueue_contains(q, offset))
+        return;
+
+    q->offsets[q->count++] = offset;
+}
+
+static inline bool chunkqueue_pop(struct ChunkQueue* q, ivec2s* out_offset)
+{
+    if (q->count == 0)
+        return false;
+
+    *out_offset = q->offsets[--q->count];
+
+    return true;
+}
+
+static inline void chunkqueue_sort(struct ChunkQueue* q, int(*compare_fn)(const void*, const void*))
+{
+    if (q->count <= 1)
+        return;
+    
+    qsort(q->offsets, q->count, sizeof(ivec2s), compare_fn);
+}
 
 #endif

@@ -25,7 +25,8 @@ void chunk_init(struct Chunk* chunk, struct World* world, ivec2s offset)
 
 uint8_t chunk_get_block(struct Chunk* chunk, ivec3s pos)
 {
-    if (!chunk_in_bound(pos)) return BLOCK_AIR;
+    if (!chunk_in_bound(pos))
+        return BLOCK_AIR;
 
     return chunk->blocks[chunk_block_index(pos)];
 }
@@ -69,7 +70,7 @@ void chunk_set_block(struct Chunk* chunk, ivec3s pos, uint8_t block_id)
     }
 }
 
-static bool should_render_face_between(enum BlockId block, enum BlockId neighbor)
+bool should_render_face_between(enum BlockId block, enum BlockId neighbor)
 {
     // air next to anything, render face
     if (neighbor == BLOCK_AIR) {
@@ -100,16 +101,6 @@ void chunk_build_mesh(struct Chunk* chunk, struct TextureAtlas* atlas)
     mesh_reset(&chunk->opaque_mesh);
     mesh_reset(&chunk->transparent_mesh);
 
-    static const ivec3s CUBE_FACE_NORMALS[6] =
-    {
-        {{  0,  0, -1 }},
-        {{  0,  0,  1 }},
-        {{  1,  0,  0 }},
-        {{ -1,  0,  0 }},
-        {{  0,  1,  0 }},
-        {{  0, -1,  0 }},
-    };
-
     for (int x = 0; x < CHUNK_WIDTH; x++)
     {
         for (int y = 0; y < CHUNK_HEIGHT; y++)
@@ -126,8 +117,8 @@ void chunk_build_mesh(struct Chunk* chunk, struct TextureAtlas* atlas)
                 
                 for (int face = 0; face < 6; face++)
                 {
-                    ivec3s neighbor_pos = glms_ivec3_add(pos, CUBE_FACE_NORMALS[face]);
-                    ivec3s neighbor_world_pos = glms_ivec3_add(world_pos, CUBE_FACE_NORMALS[face]);
+                    ivec3s neighbor_pos = glms_ivec3_add(pos, DIRECTIONS[face]);
+                    ivec3s neighbor_world_pos = chunk_local_to_world(chunk->offset, neighbor_pos);
                     
                     if (chunk_in_bound(neighbor_pos)) {
                         neighbor_block = chunk->blocks[chunk_block_index(neighbor_pos)];

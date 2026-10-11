@@ -1,7 +1,7 @@
 #ifndef TEXTURE_H
 #define TEXTURE_H
 
-#include "util/math.h"
+#include "util/util.h"
 
 struct Texture
 {
