@@ -16,6 +16,7 @@ A simple voxel engine made in C and OpenGL without using any third-party game en
 - Different block types
 - Semi-transparent rendering (sort chunks to render water properly)
 - Distant fog effect
+- Ambient occlusion
 - More features coming in the future...hopefully
 
 ## Building the Project

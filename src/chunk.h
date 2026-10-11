@@ -24,10 +24,9 @@ struct Chunk
 
     struct ChunkMesh opaque_mesh;
     struct ChunkMesh transparent_mesh;
-
     struct World* world;
 
-    bool dirty; // true if the chunk mesh needs rebuilding
+    bool dirty; // true if chunk data is modified, need to rebuild mesh
 };
 
 static inline int chunk_block_index(ivec3s pos)
@@ -48,7 +47,7 @@ static inline ivec3s chunk_local_to_world(ivec2s chunk_offset, ivec3s local_pos)
 void chunk_init(struct Chunk* chunk, struct World* world, ivec2s offset);
 uint8_t chunk_get_block(struct Chunk* chunk, ivec3s pos);
 void chunk_set_block(struct Chunk* chunk, ivec3s pos, uint8_t block_id);
-void chunk_build_mesh(struct Chunk* chunk, struct TextureAtlas* atlas);
+void chunk_generate_mesh(struct Chunk* chunk, struct TextureAtlas* atlas);
 void chunk_render_opaque(struct Chunk* chunk, struct Renderer* renderer);
 void chunk_render_transparent(struct Chunk* chunk, struct Renderer* renderer);
 void chunk_destroy(struct Chunk* chunk);

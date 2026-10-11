@@ -30,7 +30,7 @@ void mesh_reset(struct ChunkMesh* mesh)
     mesh->indices_count = 0;
 }
 
-void mesh_add_face(struct ChunkMesh* mesh, vec2s uv_offset, vec2s tile_unit, vec3s position, int face, int is_liquid)
+void mesh_add_face(struct ChunkMesh* mesh, vec2s uv_offset, vec2s tile_unit, vec3s position, int face, int is_liquid, int ao[4])
 {
     // Add 4 vertices for this face
     for (int i = 0; i < 4; i++)
@@ -39,35 +39,30 @@ void mesh_add_face(struct ChunkMesh* mesh, vec2s uv_offset, vec2s tile_unit, vec
         mesh->vertices[mesh->vertex_count+i].position.x = position.x + v.x;
         mesh->vertices[mesh->vertex_count+i].position.y = position.y + (is_liquid ? 0.9f : 1.0f) * v.y;
         mesh->vertices[mesh->vertex_count+i].position.z = position.z + v.z;
-        mesh->vertices[mesh->vertex_count+i].uvs.x = uv_offset.x + tile_unit.x * CUBE_UVS[i*2 + 0];
-        mesh->vertices[mesh->vertex_count+i].uvs.y = uv_offset.y + tile_unit.y * CUBE_UVS[i*2 + 1];
-
-        // voxel shading
-        switch (face)
-        {
-            case FACE_TOP:
-                mesh->vertices[mesh->vertex_count+i].shading = 1.0f;
-                break;
-            case FACE_FRONT:
-            case FACE_BACK:
-                mesh->vertices[mesh->vertex_count+i].shading = 0.9f;
-                break;
-            case FACE_LEFT:
-            case FACE_RIGHT:
-                mesh->vertices[mesh->vertex_count+i].shading = 0.8f;
-                break;
-            default:
-                mesh->vertices[mesh->vertex_count+i].shading = 0.6f;
-                break;
-        }
+        mesh->vertices[mesh->vertex_count+i].uv.x = uv_offset.x + tile_unit.x * CUBE_UVS[i*2 + 0];
+        mesh->vertices[mesh->vertex_count+i].uv.y = uv_offset.y + tile_unit.y * CUBE_UVS[i*2 + 1];
+        mesh->vertices[mesh->vertex_count+i].ao = 0.6f + (ao[i] * 0.1333f);
     }
 
-    mesh->indices[mesh->indices_count++] = mesh->vertex_count + 0;
-    mesh->indices[mesh->indices_count++] = mesh->vertex_count + 1;
-    mesh->indices[mesh->indices_count++] = mesh->vertex_count + 2;
-    mesh->indices[mesh->indices_count++] = mesh->vertex_count + 2;
-    mesh->indices[mesh->indices_count++] = mesh->vertex_count + 3;
-    mesh->indices[mesh->indices_count++] = mesh->vertex_count + 0;
+    // flip triangle diagonal (prevent anisotropic flashing)
+    if ((ao[0] + ao[2]) > (ao[1] + ao[3]))
+    {
+        mesh->indices[mesh->indices_count++] = mesh->vertex_count + 1;
+        mesh->indices[mesh->indices_count++] = mesh->vertex_count + 2;
+        mesh->indices[mesh->indices_count++] = mesh->vertex_count + 3;
+        mesh->indices[mesh->indices_count++] = mesh->vertex_count + 3;
+        mesh->indices[mesh->indices_count++] = mesh->vertex_count + 0;
+        mesh->indices[mesh->indices_count++] = mesh->vertex_count + 1;
+    }
+    else
+    {
+        mesh->indices[mesh->indices_count++] = mesh->vertex_count + 0;
+        mesh->indices[mesh->indices_count++] = mesh->vertex_count + 1;
+        mesh->indices[mesh->indices_count++] = mesh->vertex_count + 2;
+        mesh->indices[mesh->indices_count++] = mesh->vertex_count + 2;
+        mesh->indices[mesh->indices_count++] = mesh->vertex_count + 3;
+        mesh->indices[mesh->indices_count++] = mesh->vertex_count + 0;
+    }
 
     mesh->vertex_count += 4;
 }
@@ -89,11 +84,11 @@ void mesh_upload(struct ChunkMesh* mesh)
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(struct Vertex), (void*)(0 * sizeof(float)));
     glEnableVertexAttribArray(0);
 
-    // uvs
+    // uv
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(struct Vertex), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
-    // shading
+    // ao
     glEnableVertexAttribArray(2);
     glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, sizeof(struct Vertex), (void*)(5 * sizeof(float)));
 }

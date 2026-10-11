@@ -9,21 +9,11 @@
 
 struct Chunk;
 
-enum Face
-{
-    FACE_FRONT = 0,
-    FACE_BACK,
-    FACE_RIGHT,
-    FACE_LEFT,
-    FACE_TOP,
-    FACE_BOTTOM
-};
-
 struct Vertex
 {
     vec3s position;
-    vec2s uvs;
-    float shading;
+    vec2s uv;
+    float ao; // ambient occlusion
 };
 
 struct ChunkMesh
@@ -39,7 +29,7 @@ struct ChunkMesh
 
 void mesh_init(struct ChunkMesh* mesh);
 void mesh_reset(struct ChunkMesh* mesh);
-void mesh_add_face(struct ChunkMesh* mesh, vec2s uv_offset, vec2s tile_unit, vec3s position, int face_index, int is_liquid);
+void mesh_add_face(struct ChunkMesh* mesh, vec2s uv_offset, vec2s tile_unit, vec3s position, int face_index, int is_liquid, int ao[4]);
 void mesh_upload(struct ChunkMesh* mesh);
 void mesh_render(struct ChunkMesh* mesh, struct Renderer* renderer);
 void mesh_destroy(struct ChunkMesh* mesh);

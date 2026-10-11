@@ -4,7 +4,7 @@ uniform sampler2D tex;
 
 in vec2 v_texcoord;
 in float v_distance;
-in float v_shading;
+in float v_ao;
 
 out vec4 frag_color;
 
@@ -20,7 +20,5 @@ void main()
     float fog_factor = (v_distance - fog_start) / (fog_end - fog_start);
     fog_factor = clamp(fog_factor, 0.0, 1.0);
 
-    vec3 final_color = mix(tex_color.rgb * v_shading, fog_color, fog_factor);
-
-    frag_color = vec4(final_color, tex_color.a);
+    frag_color = vec4(mix(tex_color.rgb * v_ao, fog_color, fog_factor), tex_color.a);
 }
