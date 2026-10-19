@@ -11,6 +11,8 @@ static void resize_callback(GLFWwindow* handle, int width, int height)
 
 void window_init(struct Window* window, int width, int height, const char* title)
 {
+    memset(window, 0, sizeof(struct Window));
+    
     if (!glfwInit())
     {
         fprintf(stderr, "%s",  "Failed to initialize GLFW\n");

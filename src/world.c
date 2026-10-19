@@ -20,8 +20,8 @@ static int compare_chunks_back_to_front(const void *a, const void *b)
     const struct Chunk* aa = *(const struct Chunk**)a;
     const struct Chunk* bb = *(const struct Chunk**)b;
 
-    int da = glms_ivec3_distance2(camera_pos, chunk_local_to_world(aa->offset, GLMS_IVEC3_ZERO));
-    int db = glms_ivec3_distance2(camera_pos, chunk_local_to_world(bb->offset, GLMS_IVEC3_ZERO));
+    int da = glms_ivec3_distance2(camera_pos, chunk_local_to_world_pos(aa->offset, GLMS_IVEC3_ZERO));
+    int db = glms_ivec3_distance2(camera_pos, chunk_local_to_world_pos(bb->offset, GLMS_IVEC3_ZERO));
 
     return (da < db) - (da > db);;
 }
@@ -184,13 +184,14 @@ void world_update(struct World* world, struct Input* input)
         }
     }
 
+    // sort queued chunks, load chunks nearest to the player first
     chunkqueue_sort(&world->chunkqueue, compare_queued_chunks_back_to_front);
 
     // process one chunk per update
-    ivec2s next_chunk_offset;
-    if (chunkqueue_pop(&world->chunkqueue, &next_chunk_offset))
+    ivec2s offset;
+    if (chunkqueue_pop(&world->chunkqueue, &offset))
     {
-        world_load_chunk(world, next_chunk_offset);
+        world_load_chunk(world, offset);
     }
 
     // unload chunks away from the player

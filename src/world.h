@@ -17,7 +17,7 @@
 struct ChunkQueue
 {
     ivec2s offsets[CHUNK_QUEUE_SIZE];
-    uint32_t count;
+    size_t count;
 };
 
 struct World

@@ -16,14 +16,13 @@ void renderer_init(struct Renderer* renderer)
     renderer->shaders[SHADER_BASIC] = shader_create("res/shaders/basic.vert", "res/shaders/basic.frag");
 }
 
-void renderer_use_shader(struct Renderer* renderer, enum ShaderType type)
+void renderer_use_shader(struct Renderer* renderer, enum ShaderType shader)
 {
-    assert(type >= 0 && type < SHADER_TOTAL);
-
-    struct Shader* shader = &renderer->shaders[type];
+    if (renderer->shader = shader)
+        return;
 
     renderer->shader = shader;
-    shader_bind(shader);
+    shader_bind(&renderer->shaders[shader]);
 }
 
 void renderer_enable_wireframe(struct Renderer* renderer)

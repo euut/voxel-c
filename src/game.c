@@ -40,7 +40,8 @@ void game_run(struct Game* game)
     double last_frame = glfwGetTime();
     double accumulator = 0.0;
     double timer = glfwGetTime();
-    const double SECONDS_PER_TICK = 1.0 / 60.0; // 60 UPS
+
+#define SECONDS_PER_TICK (1.0 / 60.0) // 60 UPS
 
     int updates = 0;
     int frames = 0;

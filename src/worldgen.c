@@ -1,6 +1,5 @@
 #define FNL_IMPL
 #include "worldgen.h"
-#include <math.h>
 
 static fnl_state terrain_noise;
 
@@ -22,7 +21,7 @@ void worldgen_generate_terrain(struct Chunk* chunk)
     {
         for (int x = 0; x < CHUNK_WIDTH; x++)
         {
-            ivec3s world_pos = chunk_local_to_world(chunk->offset, (ivec3s){{ x, 0, z }});
+            ivec3s world_pos = chunk_local_to_world_pos(chunk->offset, (ivec3s){{ x, 0, z }});
 
             // Sample noise
             float noise = fnlGetNoise2D(&terrain_noise, (float)world_pos.x, (float)world_pos.z);

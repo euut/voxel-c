@@ -27,18 +27,18 @@ void mesh_init(struct ChunkMesh* mesh)
 void mesh_reset(struct ChunkMesh* mesh)
 {
     mesh->vertex_count = 0;
-    mesh->indices_count = 0;
+    mesh->index_count = 0;
 }
 
 void mesh_add_face(struct ChunkMesh* mesh, vec2s uv_offset, vec2s tile_unit, vec3s position, int face, int is_liquid, int ao[4])
 {
     // Add 4 vertices for this face
-    for (int i = 0; i < 4; i++)
+    for (size_t i = 0; i < 4; i++)
     {
-        vec3s v = CUBE_VERTICES[face][i];
-        mesh->vertices[mesh->vertex_count+i].position.x = position.x + v.x;
-        mesh->vertices[mesh->vertex_count+i].position.y = position.y + (is_liquid ? 0.9f : 1.0f) * v.y;
-        mesh->vertices[mesh->vertex_count+i].position.z = position.z + v.z;
+        vec3s vertex = CUBE_VERTICES[face][i];
+        mesh->vertices[mesh->vertex_count+i].position.x = position.x + vertex.x;
+        mesh->vertices[mesh->vertex_count+i].position.y = position.y + vertex.y * (is_liquid ? 0.9f : 1.0f);
+        mesh->vertices[mesh->vertex_count+i].position.z = position.z + vertex.z;
         mesh->vertices[mesh->vertex_count+i].uv.x = uv_offset.x + tile_unit.x * CUBE_UVS[i*2 + 0];
         mesh->vertices[mesh->vertex_count+i].uv.y = uv_offset.y + tile_unit.y * CUBE_UVS[i*2 + 1];
         mesh->vertices[mesh->vertex_count+i].ao = 0.6f + (ao[i] * 0.1333f);
@@ -47,21 +47,21 @@ void mesh_add_face(struct ChunkMesh* mesh, vec2s uv_offset, vec2s tile_unit, vec
     // flip triangle diagonal (prevent anisotropic flashing)
     if ((ao[0] + ao[2]) > (ao[1] + ao[3]))
     {
-        mesh->indices[mesh->indices_count++] = mesh->vertex_count + 1;
-        mesh->indices[mesh->indices_count++] = mesh->vertex_count + 2;
-        mesh->indices[mesh->indices_count++] = mesh->vertex_count + 3;
-        mesh->indices[mesh->indices_count++] = mesh->vertex_count + 3;
-        mesh->indices[mesh->indices_count++] = mesh->vertex_count + 0;
-        mesh->indices[mesh->indices_count++] = mesh->vertex_count + 1;
+        mesh->indices[mesh->index_count++] = mesh->vertex_count + 1;
+        mesh->indices[mesh->index_count++] = mesh->vertex_count + 2;
+        mesh->indices[mesh->index_count++] = mesh->vertex_count + 3;
+        mesh->indices[mesh->index_count++] = mesh->vertex_count + 3;
+        mesh->indices[mesh->index_count++] = mesh->vertex_count + 0;
+        mesh->indices[mesh->index_count++] = mesh->vertex_count + 1;
     }
     else
     {
-        mesh->indices[mesh->indices_count++] = mesh->vertex_count + 0;
-        mesh->indices[mesh->indices_count++] = mesh->vertex_count + 1;
-        mesh->indices[mesh->indices_count++] = mesh->vertex_count + 2;
-        mesh->indices[mesh->indices_count++] = mesh->vertex_count + 2;
-        mesh->indices[mesh->indices_count++] = mesh->vertex_count + 3;
-        mesh->indices[mesh->indices_count++] = mesh->vertex_count + 0;
+        mesh->indices[mesh->index_count++] = mesh->vertex_count + 0;
+        mesh->indices[mesh->index_count++] = mesh->vertex_count + 1;
+        mesh->indices[mesh->index_count++] = mesh->vertex_count + 2;
+        mesh->indices[mesh->index_count++] = mesh->vertex_count + 2;
+        mesh->indices[mesh->index_count++] = mesh->vertex_count + 3;
+        mesh->indices[mesh->index_count++] = mesh->vertex_count + 0;
     }
 
     mesh->vertex_count += 4;
@@ -78,7 +78,7 @@ void mesh_upload(struct ChunkMesh* mesh)
     
     glGenBuffers(1, &mesh->ibo);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ibo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh->indices_count * sizeof(uint16_t), mesh->indices, GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh->index_count * sizeof(uint16_t), mesh->indices, GL_STATIC_DRAW);
 
     // position
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(struct Vertex), (void*)(0 * sizeof(float)));
@@ -89,21 +89,21 @@ void mesh_upload(struct ChunkMesh* mesh)
     glEnableVertexAttribArray(1);
 
     // ao
-    glEnableVertexAttribArray(2);
     glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, sizeof(struct Vertex), (void*)(5 * sizeof(float)));
+    glEnableVertexAttribArray(2);
 }
 
 void mesh_render(struct ChunkMesh* mesh, struct Renderer* renderer)
 {
     renderer_use_shader(renderer, SHADER_BASIC);
-    shader_uniform_mat4(renderer->shader, "m", GLMS_MAT4_IDENTITY);
-    shader_uniform_mat4(renderer->shader, "v", renderer->camera->view_matrix);
-    shader_uniform_mat4(renderer->shader, "p", renderer->camera->projection_matrix);
-    shader_uniform_texture(renderer->shader, "tex", renderer->texture_atlas.texture, 0);
+    shader_uniform_mat4(&renderer->shaders[renderer->shader], "m", GLMS_MAT4_IDENTITY);
+    shader_uniform_mat4(&renderer->shaders[renderer->shader], "v", renderer->camera->view_matrix);
+    shader_uniform_mat4(&renderer->shaders[renderer->shader], "p", renderer->camera->projection_matrix);
+    shader_uniform_texture(&renderer->shaders[renderer->shader], "tex", renderer->texture_atlas.texture, 0);
 
     glBindVertexArray(mesh->vao);
-    glDrawElements(GL_TRIANGLES, mesh->indices_count, GL_UNSIGNED_SHORT, 0);
-    glBindVertexArray(0);
+    glDrawElements(GL_TRIANGLES, mesh->index_count, GL_UNSIGNED_SHORT, 0);
+    // glBindVertexArray(0);
 }
 
 void mesh_destroy(struct ChunkMesh* mesh)

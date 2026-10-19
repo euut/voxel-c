@@ -7,15 +7,15 @@
 
 struct Renderer
 {
+    enum ShaderType shader;
     struct Shader shaders[SHADER_TOTAL];
-    struct Shader* shader;
     struct Camera* camera;
     struct TextureAtlas texture_atlas;
     bool wireframe;
 };
 
 void renderer_init(struct Renderer* renderer);
-void renderer_use_shader(struct Renderer* renderer, enum ShaderType type);
+void renderer_use_shader(struct Renderer* renderer, enum ShaderType shader);
 void renderer_enable_wireframe(struct Renderer* renderer);
 void renderer_clear(struct Renderer* renderer, float r, float g, float b, float a);
 void renderer_destroy(struct Renderer* renderer);

@@ -1,12 +1,12 @@
 #include "chunk.h"
 #include "world.h"
 
-static inline bool chunk_in_bound(ivec3s pos)
+static bool chunk_in_bound(ivec3s pos)
 {
     return pos.x >= 0 && pos.y >= 0 && pos.z >= 0 && pos.x < CHUNK_WIDTH && pos.y < CHUNK_HEIGHT && pos.z < CHUNK_WIDTH;
 }
 
-static inline bool chunk_on_bound(ivec3s pos)
+static bool chunk_on_bound(ivec3s pos)
 {
     return pos.x == 0 || pos.y == 0 || pos.z == 0 || pos.x == (CHUNK_WIDTH - 1) || pos.y == (CHUNK_HEIGHT - 1) || pos.z == (CHUNK_WIDTH - 1);
 }
@@ -17,7 +17,7 @@ void chunk_init(struct Chunk* chunk, struct World* world, ivec2s offset)
 
     chunk->offset = offset;
     chunk->world = world;
-    chunk->blocks = malloc(CHUNK_BLOCK_TOTAL * sizeof(uint8_t));
+    chunk->blocks = calloc(CHUNK_BLOCK_TOTAL, sizeof(uint8_t));
 
     mesh_init(&chunk->opaque_mesh);
     mesh_init(&chunk->transparent_mesh);
@@ -25,48 +25,61 @@ void chunk_init(struct Chunk* chunk, struct World* world, ivec2s offset)
 
 uint8_t chunk_get_block(struct Chunk* chunk, ivec3s pos)
 {
-    if (!chunk_in_bound(pos))
+    if (!chunk_in_bound(pos)) {
         return BLOCK_AIR;
+    }
 
     return chunk->blocks[chunk_block_index(pos)];
 }
 
-void chunk_set_block(struct Chunk* chunk, ivec3s pos, uint8_t block_id)
+// Important! This cannot be called inside world_get_block()
+uint8_t chunk_get_block2(struct Chunk* chunk, ivec3s pos)
 {
-    chunk->blocks[chunk_block_index(pos)] = block_id;
+    if (chunk_in_bound(pos)) {
+        return chunk->blocks[chunk_block_index(pos)];
+    }
+    else {
+        return world_get_block(chunk->world, chunk_local_to_world_pos(chunk->offset, pos));
+    }
+}
+
+void chunk_set_block(struct Chunk* chunk, ivec3s pos, uint8_t block)
+{
+    chunk->blocks[chunk_block_index(pos)] = block;
     chunk->dirty = true;
 
-    if (!chunk_on_bound(pos)) return;
-
     // mark affected neighbour chunks as dirty if updated block is on chunk edge
-    struct Chunk* neighbor;
-
-    if (pos.x == 0)
+    if (chunk_on_bound(pos))
     {
-        neighbor = world_get_chunk(chunk->world, glms_ivec2_add(chunk->offset, (ivec2s) {{ -1, 0 }}));
-        
-        if (neighbor != NULL) neighbor->dirty = true;
-    }
+        struct Chunk* neighbor;
 
-    if (pos.x == CHUNK_WIDTH - 1)
-    {
-        neighbor = world_get_chunk(chunk->world, glms_ivec2_add(chunk->offset, (ivec2s) {{ 1, 0 }}));
+        if (pos.x == 0)
+        {
+            neighbor = world_get_chunk(chunk->world, glms_ivec2_add(chunk->offset, (ivec2s) {{ -1, 0 }}));
+            
+            if (neighbor != NULL) neighbor->dirty = true;
+        }
 
-        if (neighbor != NULL) neighbor->dirty = true;
-    } 
+        if (pos.x == CHUNK_WIDTH - 1)
+        {
+            neighbor = world_get_chunk(chunk->world, glms_ivec2_add(chunk->offset, (ivec2s) {{ 1, 0 }}));
 
-    if (pos.z == 0)
-    {
-        neighbor = world_get_chunk(chunk->world, glms_ivec2_add(chunk->offset, (ivec2s) {{ 0, -1 }}));
+            if (neighbor != NULL) neighbor->dirty = true;
+        } 
 
-        if (neighbor != NULL) neighbor->dirty = true;
-    }
+        if (pos.z == 0)
+        {
+            neighbor = world_get_chunk(chunk->world, glms_ivec2_add(chunk->offset, (ivec2s) {{ 0, -1 }}));
 
-    if (pos.z == CHUNK_WIDTH - 1)
-    {
-        neighbor = world_get_chunk(chunk->world, glms_ivec2_add(chunk->offset, (ivec2s) {{ 0, 1 }}));
+            if (neighbor != NULL) neighbor->dirty = true;
+        }
 
-        if (neighbor != NULL) neighbor->dirty = true;
+        if (pos.z == CHUNK_WIDTH - 1)
+        {
+            neighbor = world_get_chunk(chunk->world, glms_ivec2_add(chunk->offset, (ivec2s) {{ 0, 1 }}));
+
+            if (neighbor != NULL) neighbor->dirty = true;
+        }
     }
 }
 
@@ -141,25 +154,12 @@ static const ivec3s AO_OFFSETS[6][4][3] = {
     }
 };
 
-int chunk_get_block_ao(struct Chunk* chunk, ivec3s pos)
-{
-    enum BlockId block;
-
-    if (chunk_in_bound(pos)) {
-        block = chunk->blocks[chunk_block_index(pos)];
-    } else {
-        block = world_get_block(chunk->world, chunk_local_to_world(chunk->offset, pos));
-    }
-    
-    return block_is_solid(block);
-}
-
-void calculate_face_ao(struct Chunk* chunk, ivec3s pos, int face, int out_ao[4])
+void chunk_calculate_face_ao(struct Chunk* chunk, ivec3s pos, int face, int out_ao[4])
 {
     for (int i = 0; i < 4; i++) {
-        int s1 = chunk_get_block_ao(chunk, glms_ivec3_add(pos, AO_OFFSETS[face][i][0]));
-        int s2 = chunk_get_block_ao(chunk, glms_ivec3_add(pos, AO_OFFSETS[face][i][1]));
-        int c = chunk_get_block_ao(chunk, glms_ivec3_add(pos, AO_OFFSETS[face][i][2]));
+        int s1 = block_is_solid(chunk_get_block2(chunk, glms_ivec3_add(pos, AO_OFFSETS[face][i][0])));
+        int s2 = block_is_solid(chunk_get_block2(chunk, glms_ivec3_add(pos, AO_OFFSETS[face][i][1])));
+        int c = block_is_solid(chunk_get_block2(chunk, glms_ivec3_add(pos, AO_OFFSETS[face][i][2])));
         
         if (s1 && s2) {
             out_ao[i] = 0; // fully occluded
@@ -181,7 +181,7 @@ void chunk_generate_mesh(struct Chunk* chunk, struct TextureAtlas* atlas)
             for (int z = 0; z < CHUNK_WIDTH; z++)
             {
                 ivec3s pos = {{x, y, z}};
-                ivec3s world_pos = chunk_local_to_world(chunk->offset, pos);
+                ivec3s world_pos = chunk_local_to_world_pos(chunk->offset, pos);
 
                 enum BlockId block = chunk->blocks[chunk_block_index(pos)];
                 enum BlockId neighbor_block;
@@ -191,7 +191,7 @@ void chunk_generate_mesh(struct Chunk* chunk, struct TextureAtlas* atlas)
                 for (int face = 0; face < 6; face++)
                 {
                     ivec3s neighbor_pos = glms_ivec3_add(pos, DIRECTIONS[face]);
-                    ivec3s neighbor_world_pos = chunk_local_to_world(chunk->offset, neighbor_pos);
+                    ivec3s neighbor_world_pos = chunk_local_to_world_pos(chunk->offset, neighbor_pos);
                     
                     if (chunk_in_bound(neighbor_pos)) {
                         neighbor_block = chunk->blocks[chunk_block_index(neighbor_pos)];
@@ -206,12 +206,12 @@ void chunk_generate_mesh(struct Chunk* chunk, struct TextureAtlas* atlas)
                         vec2s uv_offset = texture_atlas_get_uv_offset(atlas, tile_index);
 
                         int ao[4];
-                        calculate_face_ao(chunk, pos, face, ao);
+                        chunk_calculate_face_ao(chunk, pos, face, ao);
 
                         // Pick which mesh (opaque or transparent) to send this face to
-                        struct ChunkMesh* target_mesh = block_is_transparent(block) ? &chunk->transparent_mesh : &chunk->opaque_mesh;
+                        struct ChunkMesh* mesh = block_is_transparent(block) ? &chunk->transparent_mesh : &chunk->opaque_mesh;
 
-                        mesh_add_face(target_mesh, uv_offset, atlas->tile_unit, ivec3s_to_vec3s(world_pos), face, block_is_liquid(block), ao);
+                        mesh_add_face(mesh, uv_offset, atlas->tile_unit, ivec3s_to_vec3s(world_pos), face, block_is_liquid(block), ao);
                     }
                 }
             }
@@ -231,12 +231,18 @@ void chunk_render_opaque(struct Chunk* chunk, struct Renderer* renderer)
         chunk->dirty = false;
     }
     
-    mesh_render(&chunk->opaque_mesh, renderer);
+    if (chunk->opaque_mesh.vertex_count > 0)
+    {
+        mesh_render(&chunk->opaque_mesh, renderer);
+    }
 }
 
 void chunk_render_transparent(struct Chunk* chunk, struct Renderer* renderer)
 {
-    mesh_render(&chunk->transparent_mesh, renderer);
+    if (chunk->transparent_mesh.vertex_count > 0)
+    {
+        mesh_render(&chunk->transparent_mesh, renderer);
+    }
 }
 
 void chunk_destroy(struct Chunk* chunk)
