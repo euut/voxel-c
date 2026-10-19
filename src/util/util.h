@@ -8,7 +8,7 @@
 #define radians(deg) glm_rad(deg)
 #define degrees(rad) glm_deg(rad)
 
-static const ivec3s DIRECTIONS[6] =
+static const ivec3s FACE_NORMALS[6] =
 {
     {{  0,  0, -1 }}, // +Z (front)
     {{  0,  0,  1 }}, // -Z (back)

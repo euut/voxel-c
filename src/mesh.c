@@ -39,6 +39,7 @@ void mesh_add_face(struct ChunkMesh* mesh, vec2s uv_offset, vec2s tile_unit, vec
         mesh->vertices[mesh->vertex_count+i].position.x = position.x + vertex.x;
         mesh->vertices[mesh->vertex_count+i].position.y = position.y + vertex.y * (is_liquid ? 0.9f : 1.0f);
         mesh->vertices[mesh->vertex_count+i].position.z = position.z + vertex.z;
+        mesh->vertices[mesh->vertex_count+i].normal = ivec3s_to_vec3s(FACE_NORMALS[face]);
         mesh->vertices[mesh->vertex_count+i].uv.x = uv_offset.x + tile_unit.x * CUBE_UVS[i*2 + 0];
         mesh->vertices[mesh->vertex_count+i].uv.y = uv_offset.y + tile_unit.y * CUBE_UVS[i*2 + 1];
         mesh->vertices[mesh->vertex_count+i].ao = 0.6f + (ao[i] * 0.1333f);
@@ -81,16 +82,20 @@ void mesh_upload(struct ChunkMesh* mesh)
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh->index_count * sizeof(uint16_t), mesh->indices, GL_STATIC_DRAW);
 
     // position
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(struct Vertex), (void*)(0 * sizeof(float)));
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(struct Vertex), (void*)0);
     glEnableVertexAttribArray(0);
 
-    // uv
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(struct Vertex), (void*)(3 * sizeof(float)));
+    // normal
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(struct Vertex), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
-    // ao
-    glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, sizeof(struct Vertex), (void*)(5 * sizeof(float)));
+    // uv
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(struct Vertex), (void*)(6 * sizeof(float)));
     glEnableVertexAttribArray(2);
+
+    // ao
+    glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(struct Vertex), (void*)(8 * sizeof(float)));
+    glEnableVertexAttribArray(3);
 }
 
 void mesh_render(struct ChunkMesh* mesh, struct Renderer* renderer)

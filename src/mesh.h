@@ -10,6 +10,7 @@
 struct Vertex
 {
     vec3s position;
+    vec3s normal;
     vec2s uv;
     float ao; // ambient occlusion
 };

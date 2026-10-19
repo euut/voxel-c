@@ -190,7 +190,7 @@ void chunk_generate_mesh(struct Chunk* chunk, struct TextureAtlas* atlas)
                 
                 for (int face = 0; face < 6; face++)
                 {
-                    ivec3s neighbor_pos = glms_ivec3_add(pos, DIRECTIONS[face]);
+                    ivec3s neighbor_pos = glms_ivec3_add(pos, FACE_NORMALS[face]);
                     ivec3s neighbor_world_pos = chunk_local_to_world_pos(chunk->offset, neighbor_pos);
                     
                     if (chunk_in_bound(neighbor_pos)) {
