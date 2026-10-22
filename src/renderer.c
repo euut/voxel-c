@@ -18,9 +18,6 @@ void renderer_init(struct Renderer* renderer)
 
 void renderer_use_shader(struct Renderer* renderer, enum ShaderType shader)
 {
-    if (renderer->shader = shader)
-        return;
-
     renderer->shader = shader;
     shader_bind(&renderer->shaders[shader]);
 }

@@ -3,6 +3,8 @@
 
 void player_init(struct Player* player, vec3s position, struct World* world)
 {
+    memset(player, 0, sizeof(struct Player));
+
     camera_init(&player->camera, position, radians(75.0f));
 
     player->position = position;
@@ -19,7 +21,7 @@ void player_update(struct Player* player, struct Input* input)
     // printf("%f, %f\n", input->mouse_delta.x, input->mouse_delta.y);
 
     vec3s offset = GLMS_VEC3_ZERO;
-    vec3s forward = glms_vec3_normalize((vec3s){{ player->camera.front.x, 0.0f, player->camera.front.z }});
+    vec3s forward = glms_vec3_normalize((vec3s) {{ player->camera.front.x, 0.0f, player->camera.front.z }});
     vec3s right = glms_vec3_normalize(glms_vec3_cross(forward, (vec3s) {{ 0.0f, 1.0f, 0.0f }}));
 
     if (input_key_down(input, GLFW_KEY_W))
@@ -54,14 +56,12 @@ void player_update(struct Player* player, struct Input* input)
 
     if (!glms_vec3_eq(offset, 0.0f))
     {
-        offset = glms_vec3_normalize(offset);
-        offset = glms_vec3_scale(offset, player->speed);
+        offset = glms_vec3_scale(glms_vec3_normalize(offset), player->speed);
+        camera_move(&player->camera, offset);
+
+        player->position = player->camera.position;
     }
     
-    camera_move(&player->camera, offset);
-
-    player->position = player->camera.position;
-
     camera_update(&player->camera);
 
     // select block (may add gui later for block selection)
@@ -76,9 +76,7 @@ void player_update(struct Player* player, struct Input* input)
     ivec3s hit, face = GLMS_IVEC3_ZERO;
     
     // cast a ray from camera position to find the block player is looking at, true if a block was hit 
-    bool target_hit = world_ray_cast(player->world, player->camera.position, player->camera.front, 8.0f, &hit, &face);
-
-    if (target_hit)
+    if (world_ray_cast(player->world, player->camera.position, player->camera.front, 8.0f, &hit, &face))
     {
         // break block
         if (input_mouse_pressed(input, GLFW_MOUSE_BUTTON_LEFT))

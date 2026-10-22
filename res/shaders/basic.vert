@@ -10,13 +10,13 @@ out vec2 v_texcoord;
 out float v_distance;
 out float v_ao;
 
-uniform mat4 m;
+// uniform mat4 m;
 uniform mat4 v;
 uniform mat4 p;
 
 void main()
 {
-    vec4 view_pos = v * m * vec4(a_position, 1.0);
+    vec4 view_pos = v * vec4(a_position, 1.0);
 
     v_normal = a_normal;
     v_texcoord = a_uv;

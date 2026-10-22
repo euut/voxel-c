@@ -1,15 +1,18 @@
 #include "chunk.h"
 #include "world.h"
 
-static bool chunk_in_bound(ivec3s pos)
-{
-    return pos.x >= 0 && pos.y >= 0 && pos.z >= 0 && pos.x < CHUNK_WIDTH && pos.y < CHUNK_HEIGHT && pos.z < CHUNK_WIDTH;
-}
+// block index inside a chunk
+#define chunk_block_index(pos) \
+    (pos.x + pos.z * CHUNK_WIDTH + pos.y * CHUNK_WIDTH * CHUNK_WIDTH)
 
-static bool chunk_on_bound(ivec3s pos)
-{
-    return pos.x == 0 || pos.y == 0 || pos.z == 0 || pos.x == (CHUNK_WIDTH - 1) || pos.y == (CHUNK_HEIGHT - 1) || pos.z == (CHUNK_WIDTH - 1);
-}
+// true if a block is within chunk bound
+#define chunk_in_bound(pos) \
+    (pos.x >= 0 && pos.y >= 0 && pos.z >= 0 && pos.x < CHUNK_WIDTH && pos.y < CHUNK_HEIGHT && pos.z < CHUNK_WIDTH)
+
+// true if a block is on any chunk edges
+#define chunk_on_bound(pos) \
+    (pos.x == 0 || pos.y == 0 || pos.z == 0 || pos.x == (CHUNK_WIDTH - 1) || pos.y == (CHUNK_HEIGHT - 1) || pos.z == (CHUNK_WIDTH - 1))
+
 
 void chunk_init(struct Chunk* chunk, struct World* world, ivec2s offset)
 {
@@ -43,12 +46,12 @@ uint8_t chunk_get_block2(struct Chunk* chunk, ivec3s pos)
     }
 }
 
-void chunk_set_block(struct Chunk* chunk, ivec3s pos, uint8_t block)
+void chunk_on_block_update(struct Chunk* chunk, ivec3s pos)
 {
-    chunk->blocks[chunk_block_index(pos)] = block;
-    chunk->dirty = true;
-
-    // mark affected neighbour chunks as dirty if updated block is on chunk edge
+    if (!chunk->dirty)
+        chunk->dirty = true;
+    
+    // mark affected neighbor chunks as dirty if updated block is on chunk edge
     if (chunk_on_bound(pos))
     {
         struct Chunk* neighbor;
@@ -57,30 +60,42 @@ void chunk_set_block(struct Chunk* chunk, ivec3s pos, uint8_t block)
         {
             neighbor = world_get_chunk(chunk->world, glms_ivec2_add(chunk->offset, (ivec2s) {{ -1, 0 }}));
             
-            if (neighbor != NULL) neighbor->dirty = true;
+            if (neighbor && !neighbor->dirty)
+                neighbor->dirty = true;
         }
 
         if (pos.x == CHUNK_WIDTH - 1)
         {
             neighbor = world_get_chunk(chunk->world, glms_ivec2_add(chunk->offset, (ivec2s) {{ 1, 0 }}));
 
-            if (neighbor != NULL) neighbor->dirty = true;
+            if (neighbor && !neighbor->dirty)
+                neighbor->dirty = true;
         } 
 
         if (pos.z == 0)
         {
             neighbor = world_get_chunk(chunk->world, glms_ivec2_add(chunk->offset, (ivec2s) {{ 0, -1 }}));
 
-            if (neighbor != NULL) neighbor->dirty = true;
+            if (neighbor && !neighbor->dirty)
+                neighbor->dirty = true;
         }
 
         if (pos.z == CHUNK_WIDTH - 1)
         {
             neighbor = world_get_chunk(chunk->world, glms_ivec2_add(chunk->offset, (ivec2s) {{ 0, 1 }}));
 
-            if (neighbor != NULL) neighbor->dirty = true;
+            if (neighbor && !neighbor->dirty)
+                neighbor->dirty = true;
         }
     }
+}
+
+void chunk_set_block(struct Chunk* chunk, ivec3s pos, uint8_t block)
+{
+    chunk->blocks[chunk_block_index(pos)] = block;
+    
+    // mark chunk and neighbor dirty
+    chunk_on_block_update(chunk, pos);
 }
 
 bool should_render_face_between(enum BlockId block, enum BlockId neighbor)
@@ -202,11 +217,11 @@ void chunk_generate_mesh(struct Chunk* chunk, struct TextureAtlas* atlas)
                     
                     if (should_render_face_between(block, neighbor_block))
                     {
-                        uint8_t tile_index = block_get_tile_index(block, face);
-                        vec2s uv_offset = texture_atlas_get_uv_offset(atlas, tile_index);
-
                         int ao[4];
                         chunk_calculate_face_ao(chunk, pos, face, ao);
+                        
+                        uint8_t tile_index = block_get_tile_index(block, face);
+                        vec2s uv_offset = texture_atlas_get_uv_offset(atlas, tile_index);
 
                         // Pick which mesh (opaque or transparent) to send this face to
                         struct ChunkMesh* mesh = block_is_transparent(block) ? &chunk->transparent_mesh : &chunk->opaque_mesh;
@@ -225,23 +240,20 @@ void chunk_generate_mesh(struct Chunk* chunk, struct TextureAtlas* atlas)
 
 void chunk_render_opaque(struct Chunk* chunk, struct Renderer* renderer)
 {
-    if (chunk->dirty)
-    {
+    if (chunk->dirty) {
         chunk_generate_mesh(chunk, &renderer->texture_atlas);
         chunk->dirty = false;
     }
     
-    if (chunk->opaque_mesh.vertex_count > 0)
-    {
-        mesh_render(&chunk->opaque_mesh, renderer);
+    if (chunk->opaque_mesh.vertex_count > 0) {
+        mesh_render(&chunk->opaque_mesh);
     }
 }
 
 void chunk_render_transparent(struct Chunk* chunk, struct Renderer* renderer)
 {
-    if (chunk->transparent_mesh.vertex_count > 0)
-    {
-        mesh_render(&chunk->transparent_mesh, renderer);
+    if (chunk->transparent_mesh.vertex_count > 0) {
+        mesh_render(&chunk->transparent_mesh);
     }
 }
 
@@ -250,4 +262,5 @@ void chunk_destroy(struct Chunk* chunk)
     mesh_destroy(&chunk->opaque_mesh);
     mesh_destroy(&chunk->transparent_mesh);
     free(chunk->blocks);
+    free(chunk);
 }

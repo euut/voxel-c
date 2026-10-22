@@ -98,14 +98,8 @@ void mesh_upload(struct ChunkMesh* mesh)
     glEnableVertexAttribArray(3);
 }
 
-void mesh_render(struct ChunkMesh* mesh, struct Renderer* renderer)
+void mesh_render(struct ChunkMesh* mesh)
 {
-    renderer_use_shader(renderer, SHADER_BASIC);
-    shader_uniform_mat4(&renderer->shaders[renderer->shader], "m", GLMS_MAT4_IDENTITY);
-    shader_uniform_mat4(&renderer->shaders[renderer->shader], "v", renderer->camera->view_matrix);
-    shader_uniform_mat4(&renderer->shaders[renderer->shader], "p", renderer->camera->projection_matrix);
-    shader_uniform_texture(&renderer->shaders[renderer->shader], "tex", renderer->texture_atlas.texture, 0);
-
     glBindVertexArray(mesh->vao);
     glDrawElements(GL_TRIANGLES, mesh->index_count, GL_UNSIGNED_SHORT, 0);
     // glBindVertexArray(0);

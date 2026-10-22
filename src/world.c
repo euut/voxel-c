@@ -123,7 +123,7 @@ uint8_t world_get_block(struct World* world, ivec3s pos)
     return chunk_get_block(chunk, world_to_local_pos(pos));
 }
 
-void world_set_block(struct World* world, ivec3s pos, uint8_t block_id)
+void world_set_block(struct World* world, ivec3s pos, uint8_t block)
 {
     ivec2s offset = world_to_chunk_offset(pos);
 
@@ -135,7 +135,7 @@ void world_set_block(struct World* world, ivec3s pos, uint8_t block_id)
         chunk = world_get_chunk(world, offset);
     }
 
-    chunk_set_block(chunk, world_to_local_pos(pos), block_id);
+    chunk_set_block(chunk, world_to_local_pos(pos), block);
 }
 
 void world_load_chunk(struct World* world, ivec2s offset)
@@ -164,7 +164,6 @@ void world_unload_chunk(struct World* world, size_t index)
     world->chunks[index] = world->chunks[--world->chunk_count];
 
     chunk_destroy(chunk); // free chunk memory
-    free(chunk);
 }
 
 void world_update(struct World* world, struct Input* input)
@@ -218,6 +217,10 @@ void world_update(struct World* world, struct Input* input)
 void world_render(struct World* world, struct Renderer* renderer)
 {
     renderer->camera = &world->player.camera;
+    renderer_use_shader(renderer, SHADER_BASIC);
+    shader_uniform_mat4(&renderer->shaders[renderer->shader], "v", renderer->camera->view_matrix);
+    shader_uniform_mat4(&renderer->shaders[renderer->shader], "p", renderer->camera->projection_matrix);
+    shader_uniform_texture(&renderer->shaders[renderer->shader], "tex", renderer->texture_atlas.texture, 0);
 
     // render opaque meshes first
     for (size_t i = 0; i < world->chunk_count; i++)
@@ -244,7 +247,6 @@ void world_destroy(struct World* world)
     for (size_t i = 0; i < world->chunk_count; i++)
     {
         chunk_destroy(world->chunks[i]);
-        free(world->chunks[i]);
     }
 
     free(world->chunks);

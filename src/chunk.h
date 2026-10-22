@@ -27,13 +27,8 @@ struct Chunk
 
     struct World* world;
 
-    bool dirty; // true if chunk data is modified, need to rebuild mesh
+    bool dirty; // true if chunk data is modified, need to regenerate mesh
 };
-
-static inline size_t chunk_block_index(ivec3s pos)
-{
-    return pos.x + pos.z * CHUNK_WIDTH + pos.y * CHUNK_WIDTH * CHUNK_WIDTH;
-}
 
 // Convert local block coords to world position
 static inline ivec3s chunk_local_to_world_pos(ivec2s chunk_offset, ivec3s local_pos)
